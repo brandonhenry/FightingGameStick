@@ -988,6 +988,8 @@ kbd {
 }
 
 .lever {
+  transform-box: view-box;
+  transform-origin: 171px 232px;
   transition-property: transform;
   transition-duration: 70ms;
   transition-timing-function: ease-out;

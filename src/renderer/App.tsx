@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { allTargets, isTargetActive, targetLabels, targetShortLabels } from '../shared/controller';
 import appIconUrl from '../../assets/icons/app.png';
+import { getFightStickLeverPose } from './fight-stick-pose';
 import type {
   AppSnapshot,
   ControllerState,
@@ -436,8 +437,7 @@ function GamepadVisual({ state, onTarget }: { state: ControllerState; onTarget: 
 }
 
 function FightStickVisual({ state, onTarget }: { state: ControllerState; onTarget: (target: ControllerTarget) => void }) {
-  const direction = state.buttons['dpad-left'] && !state.buttons['dpad-right'] ? -1 : state.buttons['dpad-right'] && !state.buttons['dpad-left'] ? 1 : 0;
-  const vertical = state.buttons['dpad-up'] && !state.buttons['dpad-down'] ? -1 : state.buttons['dpad-down'] && !state.buttons['dpad-up'] ? 1 : 0;
+  const leverPose = getFightStickLeverPose(state);
   const buttons: Array<{ target: ControllerTarget; x: number; y: number; color: string }> = [
     { target: 'x', x: 342, y: 132, color: 'blue' },
     { target: 'y', x: 404, y: 118, color: 'yellow' },
@@ -460,7 +460,7 @@ function FightStickVisual({ state, onTarget }: { state: ControllerState; onTarge
       <path className="fight-deck" d="M55 90Q62 64 91 63h438q29 1 36 27l19 143H36Z" />
       <path className="deck-line" d="M36 238h548" />
 
-      <g className="lever" transform={`rotate(${direction * 15 + vertical * -7} 171 232)`}>
+      <g className="lever" style={{ transform: `rotate(${leverPose.rotation}deg) scaleY(${leverPose.verticalScale})` }}>
         <path d="M171 224 156 120h30Z" />
         <circle className="lever-ball" cx="171" cy="102" r="39" />
         <circle className="lever-shine" cx="157" cy="88" r="10" />

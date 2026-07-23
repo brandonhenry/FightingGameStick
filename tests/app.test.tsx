@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../src/renderer/App';
+import { getFightStickLeverPose } from '../src/renderer/fight-stick-pose';
 import { makeInitialSnapshot } from '../src/shared/defaults';
 import type { AppBridge } from '../src/shared/types';
 
@@ -40,6 +41,20 @@ beforeEach(() => {
 });
 
 describe('App', () => {
+  it('keeps horizontal and vertical fight-stick movement on their correct axes', () => {
+    const poseFor = (...pressed: Array<'dpad-up' | 'dpad-down' | 'dpad-left' | 'dpad-right'>) => {
+      const state = makeInitialSnapshot('darwin').controller;
+      for (const target of pressed) state.buttons[target] = true;
+      return getFightStickLeverPose(state);
+    };
+
+    expect(poseFor('dpad-up')).toEqual({ rotation: 0, verticalScale: 1.12 });
+    expect(poseFor('dpad-down')).toEqual({ rotation: 0, verticalScale: 0.88 });
+    expect(poseFor('dpad-left')).toEqual({ rotation: -15, verticalScale: 1 });
+    expect(poseFor('dpad-right')).toEqual({ rotation: 15, verticalScale: 1 });
+    expect(poseFor('dpad-up', 'dpad-right')).toEqual({ rotation: 15, verticalScale: 1.12 });
+  });
+
   it('renders both device views and starts click-to-bind from accessible controls', async () => {
     render(<App />);
     expect(await screen.findByRole('heading', { name: 'See every input before the round starts.' })).toBeVisible();

@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ProfileStore } from '../src/main/profile-store';
+import { makeDefaultStore } from '../src/shared/defaults';
 import { profileStoreSchema } from '../src/shared/schemas';
 
 const directories: string[] = [];
@@ -27,7 +28,23 @@ describe('ProfileStore', () => {
     const document = JSON.parse(await readFile(file, 'utf8'));
     expect(profileStoreSchema.safeParse(document).success).toBe(true);
     expect(document.profiles[0].bindings).toHaveLength(14);
+    expect(document.profiles[0].bindings.find((binding: { target: string }) => binding.target === 'start')?.source.label).toBe('Escape');
     expect(document.passthrough).toBe(false);
+  });
+
+  it('migrates an untouched legacy fight layout from Enter to Escape', async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'fighting-game-stick-legacy-'));
+    directories.push(directory);
+    const file = path.join(directory, 'profiles.json');
+    const legacy = makeDefaultStore();
+    const start = legacy.profiles[0]!.bindings.find((binding) => binding.target === 'start')!;
+    start.source = { scanCode: 0x1c, virtualKey: 0x0d, extended: false, label: 'Enter' };
+    await writeFile(file, JSON.stringify(legacy));
+
+    const store = new ProfileStore(file);
+    await store.load();
+
+    expect(store.activeProfile().bindings.find((binding) => binding.target === 'start')?.source.label).toBe('Escape');
   });
 
   it('moves a source key when it is rebound and allows shared outputs', async () => {

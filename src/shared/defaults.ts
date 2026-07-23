@@ -19,7 +19,7 @@ const defaultBindingData: Array<[PhysicalKey, Binding['target']]> = [
   [key(0x25, 0x4b, 'K'), 'b'],
   [key(0x26, 0x4c, 'L'), 'rt'],
   [key(0x27, 0xba, ';'), 'lt'],
-  [key(0x1c, 0x0d, 'Enter'), 'start'],
+  [key(0x01, 0x1b, 'Escape'), 'start'],
   [key(0x0e, 0x08, 'Backspace'), 'back'],
 ];
 

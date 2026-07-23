@@ -15,9 +15,12 @@ export class ProfileStore {
     try {
       const raw = await readFile(this.filePath, 'utf8');
       this.document = profileStoreSchema.parse(JSON.parse(raw));
+      let shouldSave = this.migrateLegacyDefaultStartBinding();
       if (!this.document.profiles.some((profile) => profile.id === this.document.activeProfileId)) {
         this.document.activeProfileId = this.document.profiles[0]!.id;
+        shouldSave = true;
       }
+      if (shouldSave) await this.save();
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
         const backupPath = `${this.filePath}.invalid-${Date.now()}`;
@@ -130,6 +133,35 @@ export class ProfileStore {
     const profile = this.document.profiles.find((candidate) => candidate.id === profileId);
     if (!profile) throw new Error('Profile not found.');
     return profile;
+  }
+
+  private migrateLegacyDefaultStartBinding(): boolean {
+    const profile = this.document.profiles.find((candidate) => candidate.id === 'default-fight-layout');
+    if (
+      !profile ||
+      profile.name !== 'Fight layout' ||
+      profile.createdAt !== profile.updatedAt ||
+      profile.bindings.length !== 14 ||
+      !profile.bindings.every((binding, index) => binding.id === `default-${index + 1}`)
+    ) {
+      return false;
+    }
+
+    const start = profile.bindings.find((binding) => binding.id === 'default-13');
+    if (
+      !start ||
+      start.target !== 'start' ||
+      start.source.scanCode !== 0x1c ||
+      start.source.virtualKey !== 0x0d ||
+      start.source.extended ||
+      start.source.label !== 'Enter'
+    ) {
+      return false;
+    }
+
+    start.source = { scanCode: 0x01, virtualKey: 0x1b, extended: false, label: 'Escape' };
+    profile.updatedAt = new Date().toISOString();
+    return true;
   }
 
   private uniqueName(base: string): string {
