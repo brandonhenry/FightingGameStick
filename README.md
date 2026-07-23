@@ -6,6 +6,8 @@
 
 **[Download the latest Windows installer](https://github.com/brandonhenry/FightingGameStick/releases/latest)** — open `FightingGameStickSetup.exe`, launch the app, and follow the driver prompt the first time.
 
+The standalone [download page](download.html) provides direct installer and portable-build buttons.
+
 Fighting Game Stick turns a physical keyboard into one persistent virtual Xbox 360 controller on Windows 10/11 x64. The app shows the same live report as an Xbox-style pad and an eight-button arcade stick, so a player can create a profile, click a controller control, press a keyboard key, and play an XInput-compatible game without per-game DLL injection.
 
 The honest compatibility promise is **XInput games that do not deliberately block low-level keyboard hooks**. Anti-cheat systems, elevated games, keyboard hardware rollover limits, Steam Input, and games that ignore XInput can affect behavior. macOS builds run a focused-window UI/demo backend and do not create a system controller.
