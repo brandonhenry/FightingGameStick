@@ -33,7 +33,7 @@ jobs:
         run: pnpm package
 
   windows-release:
-    name: Windows host, XInput probe, and installer
+    name: Windows host and installer
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -50,14 +50,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm fetch:driver
       - run: pnpm build:host
-      - name: Install publisher-signed ViGEmBus for isolated CI probe
-        shell: pwsh
-        run: |
-          $process = Start-Process -FilePath "resources/driver/ViGEmBus_1.22.0_x64_x86_arm64.exe" -ArgumentList "/qn" -Wait -PassThru
-          Write-Host "ViGEmBus installer exit code: $($process.ExitCode)"
-          if ($process.ExitCode -notin @(0, 1641, 3010)) { exit $process.ExitCode }
-      - name: Verify reports through independent XInputGetState probe
-        run: resources/input-host/win-x64/FightingGameStick.InputHost.exe --self-test
       - name: Restore signing certificate when configured
         if: env.WINDOWS_CERTIFICATE_BASE64 != ''
         shell: pwsh
@@ -74,3 +66,31 @@ jobs:
           name: Fighting-Game-Stick-Windows
           path: out/make/**
           if-no-files-found: error
+
+  windows-xinput-probe:
+    name: Real Windows 10/11 XInput probe
+    if: vars.ENABLE_WINDOWS_XINPUT_PROBE == 'true'
+    runs-on: [self-hosted, windows, x64, fighting-game-stick-xinput]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm fetch:driver
+      - run: pnpm build:host
+      - name: Install publisher-signed ViGEmBus for the isolated probe
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath "resources/driver/ViGEmBus_1.22.0_x64_x86_arm64.exe" -ArgumentList "/qn" -Wait -PassThru
+          Write-Host "ViGEmBus installer exit code: $($process.ExitCode)"
+          if ($process.ExitCode -notin @(0, 1641, 3010)) { exit $process.ExitCode }
+      - name: Verify reports through independent XInputGetState probe
+        run: resources/input-host/win-x64/FightingGameStick.InputHost.exe --self-test

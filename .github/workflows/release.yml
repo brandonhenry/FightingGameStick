@@ -48,22 +48,6 @@ jobs:
       - run: pnpm fetch:driver
       - run: pnpm build:host
 
-      - name: Install publisher-signed ViGEmBus for the isolated CI probe
-        shell: pwsh
-        run: |
-          $process = Start-Process `
-            -FilePath "resources/driver/ViGEmBus_1.22.0_x64_x86_arm64.exe" `
-            -ArgumentList "/qn" `
-            -Wait `
-            -PassThru
-          Write-Host "ViGEmBus installer exit code: $($process.ExitCode)"
-          if ($process.ExitCode -notin @(0, 1641, 3010)) {
-            throw "ViGEmBus installer exited with code $($process.ExitCode)"
-          }
-
-      - name: Verify virtual reports through XInputGetState
-        run: resources/input-host/win-x64/FightingGameStick.InputHost.exe --self-test
-
       - name: Restore signing certificate when configured
         if: env.WINDOWS_CERTIFICATE_BASE64 != ''
         shell: pwsh

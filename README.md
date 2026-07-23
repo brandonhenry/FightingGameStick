@@ -56,6 +56,8 @@ pnpm make
 
 Unsigned local application builds are expected. CI supports Authenticode when `WINDOWS_CERTIFICATE_BASE64` and `WINDOWS_CERTIFICATE_PASSWORD` secrets are configured. The ViGEmBus installer itself remains publisher-signed.
 
+GitHub-hosted Windows runners use Windows Server, which ViGEmBus explicitly does not support. Hosted CI therefore compiles the native host and produces the installer on Windows, while the optional real `XInputGetState` probe targets a labeled self-hosted Windows 10/11 x64 runner with `ENABLE_WINDOWS_XINPUT_PROBE=true`.
+
 ## Troubleshooting
 
 - **Game sees keyboard and controller actions:** leave Keyboard pass-through off. If Steam still duplicates/remaps output, disable Steam Input for that game.
