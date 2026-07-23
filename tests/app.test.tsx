@@ -68,6 +68,17 @@ describe('App', () => {
     await waitFor(() => expect(bridge.beginCapture).toHaveBeenCalledWith('qcf-a'));
   });
 
+  it('builds a multi-button motion chord before binding one keyboard key', async () => {
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Motion shortcuts' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle B for QCF chord' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle Y for QCF chord' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bind QCF + A + B + Y' }));
+
+    await waitFor(() => expect(bridge.beginCapture).toHaveBeenCalledWith('qcf-a+b+y'));
+  });
+
   it('exposes pass-through and diagnostics without hiding safety status', async () => {
     render(<App />);
     expect(await screen.findByText('Keyboard pass-through')).toBeVisible();

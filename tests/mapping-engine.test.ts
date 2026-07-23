@@ -134,10 +134,10 @@ describe('MappingEngine', () => {
   });
 
   it('generates quarter-circle-back on the left side', () => {
-    expect(motionShortcutFrames('qcb-rt')).toEqual([
+    expect(motionShortcutFrames('qcb-b+x+rt')).toEqual([
       ['dpad-down'],
       ['dpad-down', 'dpad-left'],
-      ['dpad-left', 'rt'],
+      ['dpad-left', 'b', 'x', 'rt'],
     ]);
   });
 });

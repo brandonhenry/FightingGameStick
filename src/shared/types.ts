@@ -1,4 +1,4 @@
-export const PROTOCOL_VERSION = 2 as const;
+export const PROTOCOL_VERSION = 3 as const;
 
 export const controllerTargets = [
   'dpad-up',
@@ -29,28 +29,8 @@ export const controllerTargets = [
 
 export type ControllerTarget = (typeof controllerTargets)[number];
 
-export const motionShortcutTargets = [
-  'qcf-a',
-  'qcf-b',
-  'qcf-x',
-  'qcf-y',
-  'qcf-lb',
-  'qcf-rb',
-  'qcf-lt',
-  'qcf-rt',
-  'qcb-a',
-  'qcb-b',
-  'qcb-x',
-  'qcb-y',
-  'qcb-lb',
-  'qcb-rb',
-  'qcb-lt',
-  'qcb-rt',
-] as const;
-
-export type MotionShortcutTarget = (typeof motionShortcutTargets)[number];
+export type MotionShortcutTarget = `qcf-${string}` | `qcb-${string}`;
 export type BindingTarget = ControllerTarget | MotionShortcutTarget;
-export const bindingTargets = [...controllerTargets, ...motionShortcutTargets] as const;
 
 export const digitalButtonTargets = [
   'dpad-up',

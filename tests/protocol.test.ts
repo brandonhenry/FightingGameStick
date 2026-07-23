@@ -10,12 +10,16 @@ describe('runtime contracts', () => {
     expect(controllerStateSchema.safeParse(createNeutralControllerState()).success).toBe(true);
   });
 
-  it('accepts supported motion shortcuts and rejects arbitrary macros', () => {
+  it('accepts canonical motion chords and rejects arbitrary macros', () => {
     const profile = makeDefaultProfile();
-    profile.bindings[0]!.target = 'qcf-a';
+    profile.bindings[0]!.target = 'qcf-a+b+y';
     expect(mappingProfileSchema.safeParse(profile).success).toBe(true);
     const malformed = structuredClone(profile) as { bindings: Array<{ target: string }> };
     malformed.bindings[0]!.target = 'qcf-delete-everything';
+    expect(mappingProfileSchema.safeParse(malformed).success).toBe(false);
+    malformed.bindings[0]!.target = 'qcf-b+a';
+    expect(mappingProfileSchema.safeParse(malformed).success).toBe(false);
+    malformed.bindings[0]!.target = 'qcb-a+a';
     expect(mappingProfileSchema.safeParse(malformed).success).toBe(false);
   });
 
@@ -27,6 +31,6 @@ describe('runtime contracts', () => {
   it('carries and checks the protocol version', () => {
     const ready = { type: 'ready', protocolVersion: PROTOCOL_VERSION, playerIndex: null } as const;
     const parsed = hostEventSchema.parse(ready);
-    expect(parsed.type === 'ready' && parsed.protocolVersion).toBe(2);
+    expect(parsed.type === 'ready' && parsed.protocolVersion).toBe(3);
   });
 });

@@ -1,9 +1,12 @@
 import { z } from 'zod';
-import { bindingTargets, controllerTargets, digitalButtonTargets, motionShortcutTargets, PROTOCOL_VERSION } from './types';
+import { controllerTargets, digitalButtonTargets, PROTOCOL_VERSION, type MotionShortcutTarget } from './types';
+import { isMotionShortcutTarget } from './motion-shortcuts';
 
 export const controllerTargetSchema = z.enum(controllerTargets);
-export const motionShortcutTargetSchema = z.enum(motionShortcutTargets);
-export const bindingTargetSchema = z.enum(bindingTargets);
+export const motionShortcutTargetSchema = z.custom<MotionShortcutTarget>(
+  (value) => typeof value === 'string' && isMotionShortcutTarget(value),
+);
+export const bindingTargetSchema = z.union([controllerTargetSchema, motionShortcutTargetSchema]);
 export const digitalButtonTargetSchema = z.enum(digitalButtonTargets);
 
 export const physicalKeySchema = z.object({

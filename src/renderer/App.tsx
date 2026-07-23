@@ -24,7 +24,14 @@ import {
   targetLabels,
   targetShortLabels,
 } from '../shared/controller';
-import { motionAttacks } from '../shared/motion-shortcuts';
+import {
+  createMotionShortcutTarget,
+  isMotionShortcutTarget,
+  motionAttacks,
+  parseMotionShortcut,
+  type MotionAttack,
+  type QuarterCircleMotion,
+} from '../shared/motion-shortcuts';
 import appIconUrl from '../../assets/icons/app.png';
 import { getFightStickLeverPose } from './fight-stick-pose';
 import type {
@@ -537,10 +544,23 @@ function MotionShortcutsPanel({ profile, onTarget, run }: {
   onTarget: (target: BindingTarget) => void;
   run: (action: () => Promise<unknown>, success?: string) => Promise<void>;
 }) {
+  const [selectedAttacks, setSelectedAttacks] = useState<Record<QuarterCircleMotion, MotionAttack[]>>({
+    qcf: ['a'],
+    qcb: ['a'],
+  });
   const motions = [
     { id: 'qcf', name: 'Quarter-circle forward', notation: '↓  ↘  →' },
     { id: 'qcb', name: 'Quarter-circle back', notation: '↓  ↙  ←' },
   ] as const;
+
+  const toggleAttack = (motion: QuarterCircleMotion, attack: MotionAttack) => {
+    setSelectedAttacks((current) => ({
+      ...current,
+      [motion]: current[motion].includes(attack)
+        ? current[motion].filter((item) => item !== attack)
+        : motionAttacks.filter((item) => item === attack || current[motion].includes(item)),
+    }));
+  };
 
   return (
     <section className="motion-panel" aria-labelledby="motion-shortcuts-title">
@@ -549,7 +569,7 @@ function MotionShortcutsPanel({ profile, onTarget, run }: {
         <div>
           <span className="eyebrow">One-key commands</span>
           <h2 id="motion-shortcuts-title">Motion shortcuts</h2>
-          <p>Bind a key to play a complete motion plus an attack. Check your game or tournament rules before use.</p>
+          <p>Build a motion plus any attack-button chord, then bind the complete command to one key. Check your game or tournament rules before use.</p>
         </div>
       </header>
       <div className="motion-groups">
@@ -559,30 +579,71 @@ function MotionShortcutsPanel({ profile, onTarget, run }: {
               <div><strong>{motion.id.toUpperCase()}</strong><span>{motion.name}</span></div>
               <code aria-label={`${motion.name}: ${motion.notation}`}>{motion.notation}</code>
             </header>
-            <div className="motion-options">
-              {motionAttacks.map((attack) => {
-                const target = `${motion.id}-${attack}` as MotionShortcutTarget;
-                const bindings = profile.bindings.filter((binding) => binding.target === target);
-                const firstBinding = bindings[0];
-                return (
-                  <div className={`motion-option ${bindings.length ? 'has-binding' : ''}`} key={target}>
-                    <button className="motion-bind" onClick={() => onTarget(target)} aria-label={`Bind ${bindingTargetLabel(target)}`}>
-                      <span>{attack.toUpperCase()}</span>
-                      <small>{bindings.length ? bindings.map((binding) => binding.source.label).join(', ') : 'Add key'}</small>
+            <div className="motion-builder">
+              <div className="motion-chord-summary">
+                <span>Attack chord</span>
+                <output>
+                  {selectedAttacks[motion.id].length
+                    ? selectedAttacks[motion.id].map((attack) => attack.toUpperCase()).join(' + ')
+                    : 'Select buttons'}
+                </output>
+              </div>
+              <div className="motion-chord-buttons" role="group" aria-label={`${motion.id.toUpperCase()} attack chord`}>
+                {motionAttacks.map((attack) => {
+                  const selected = selectedAttacks[motion.id].includes(attack);
+                  return (
+                    <button
+                      className={selected ? 'is-selected' : ''}
+                      key={attack}
+                      aria-label={`Toggle ${attack.toUpperCase()} for ${motion.id.toUpperCase()} chord`}
+                      aria-pressed={selected}
+                      onClick={() => toggleAttack(motion.id, attack)}
+                    >
+                      {attack.toUpperCase()}
                     </button>
-                    {firstBinding && (
-                      <button
-                        className="motion-remove"
-                        aria-label={`Remove ${firstBinding.source.label} from ${bindingTargetLabel(target)}`}
-                        title={`Remove ${firstBinding.source.label}`}
-                        onClick={() => void run(() => window.fightingGameStick.removeBinding(firstBinding.id))}
-                      >
-                        <X />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+              <button
+                className="motion-bind-combo"
+                disabled={selectedAttacks[motion.id].length === 0}
+                aria-label={selectedAttacks[motion.id].length
+                  ? `Bind ${motion.id.toUpperCase()} + ${selectedAttacks[motion.id].map((attack) => attack.toUpperCase()).join(' + ')}`
+                  : `Select an attack chord for ${motion.id.toUpperCase()}`}
+                onClick={() => onTarget(createMotionShortcutTarget(motion.id, selectedAttacks[motion.id]))}
+              >
+                <Plus />
+                Bind chord to a key
+              </button>
+            </div>
+            <div className="motion-assignments">
+              <div className="motion-assignments-heading">
+                <span>Assigned shortcuts</span>
+                <small>{profile.bindings.filter((binding) => isMotionShortcutTarget(binding.target) && parseMotionShortcut(binding.target).motion === motion.id).length}</small>
+              </div>
+              <div className="motion-assignment-list">
+                {profile.bindings
+                  .filter((binding) => isMotionShortcutTarget(binding.target) && parseMotionShortcut(binding.target).motion === motion.id)
+                  .map((binding) => {
+                    const target = binding.target as MotionShortcutTarget;
+                    return (
+                      <div className="motion-assignment" key={binding.id}>
+                        <kbd>{binding.source.label}</kbd>
+                        <span>{bindingTargetLabel(target)}</span>
+                        <button
+                          aria-label={`Remove ${binding.source.label} from ${bindingTargetLabel(target)}`}
+                          title={`Remove ${binding.source.label}`}
+                          onClick={() => void run(() => window.fightingGameStick.removeBinding(binding.id))}
+                        >
+                          <X />
+                        </button>
+                      </div>
+                    );
+                  })}
+                {!profile.bindings.some((binding) => isMotionShortcutTarget(binding.target) && parseMotionShortcut(binding.target).motion === motion.id) && (
+                  <p>No shortcuts assigned yet.</p>
+                )}
+              </div>
             </div>
           </article>
         ))}

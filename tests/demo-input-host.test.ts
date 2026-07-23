@@ -62,11 +62,11 @@ describe('DemoInputHost safety decisions', () => {
     await host.stop();
   });
 
-  it('plays and previews a complete QCF plus attack sequence', async () => {
+  it('plays and previews a complete QCF plus simultaneous attack chord', async () => {
     vi.useFakeTimers();
     const host = new DemoInputHost();
     const profile = makeDefaultProfile();
-    profile.bindings.find((binding) => binding.source.label === 'W')!.target = 'qcf-a';
+    profile.bindings.find((binding) => binding.source.label === 'W')!.target = 'qcf-a+b+y';
     const reports: Array<Extract<HostEvent, { type: 'controller' }>['state']> = [];
     host.onEvent((event) => event.type === 'controller' && reports.push(event.state));
     await host.start(profile, false);
@@ -80,9 +80,13 @@ describe('DemoInputHost safety decisions', () => {
     await vi.advanceTimersByTimeAsync(35);
     expect(reports.at(-1)?.buttons['dpad-right']).toBe(true);
     expect(reports.at(-1)?.buttons.a).toBe(true);
+    expect(reports.at(-1)?.buttons.b).toBe(true);
+    expect(reports.at(-1)?.buttons.y).toBe(true);
     await vi.advanceTimersByTimeAsync(50);
     expect(reports.at(-1)?.buttons['dpad-right']).toBe(false);
     expect(reports.at(-1)?.buttons.a).toBe(false);
+    expect(reports.at(-1)?.buttons.b).toBe(false);
+    expect(reports.at(-1)?.buttons.y).toBe(false);
     await host.stop();
   });
 

@@ -272,7 +272,7 @@ internal sealed class HostRuntime : IAsyncDisposable
         if (profile.Bindings.Count > 256) throw new InvalidDataException("Profile has too many bindings.");
         var duplicateSource = profile.Bindings.GroupBy(binding => binding.Source.Id).FirstOrDefault(group => group.Count() > 1);
         if (duplicateSource is not null) throw new InvalidDataException($"Duplicate source key {duplicateSource.Key}.");
-        if (profile.Bindings.Any(binding => !ControllerTargets.All.Contains(binding.Target) && !MotionShortcuts.All.Contains(binding.Target)))
+        if (profile.Bindings.Any(binding => !ControllerTargets.All.Contains(binding.Target) && !MotionShortcuts.IsValid(binding.Target)))
             throw new InvalidDataException("Profile contains an unknown controller target.");
     }
 
@@ -319,21 +319,29 @@ internal static class MotionShortcuts
     public const int StepMilliseconds = 35;
     public const int AttackMilliseconds = 50;
     private static readonly string[] Attacks = ["a", "b", "x", "y", "lb", "rb", "lt", "rt"];
-    public static readonly HashSet<string> All =
-        Attacks.SelectMany(attack => new[] { $"qcf-{attack}", $"qcb-{attack}" }).ToHashSet(StringComparer.Ordinal);
+
+    public static bool IsValid(string target)
+    {
+        var parts = target.Split('-', StringSplitOptions.None);
+        if (parts.Length != 2 || (parts[0] != "qcf" && parts[0] != "qcb")) return false;
+        var attacks = parts[1].Split('+', StringSplitOptions.None);
+        if (attacks.Length is < 1 or > 8 || attacks.Distinct(StringComparer.Ordinal).Count() != attacks.Length) return false;
+        var indexes = attacks.Select(attack => Array.IndexOf(Attacks, attack)).ToArray();
+        return indexes.All(index => index >= 0) && indexes.Zip(indexes.Skip(1), (left, right) => left < right).All(valid => valid);
+    }
 
     public static IReadOnlyList<IReadOnlyList<string>> Frames(string target)
     {
-        if (!All.Contains(target)) throw new InvalidDataException("Unknown motion shortcut.");
+        if (!IsValid(target)) throw new InvalidDataException("Unknown motion shortcut.");
         var separator = target.IndexOf('-');
         var motion = target[..separator];
-        var attack = target[(separator + 1)..];
+        var attacks = target[(separator + 1)..].Split('+');
         var horizontal = motion == "qcf" ? "dpad-right" : "dpad-left";
         return
         [
             ["dpad-down"],
             ["dpad-down", horizontal],
-            [horizontal, attack]
+            [horizontal, .. attacks]
         ];
     }
 }

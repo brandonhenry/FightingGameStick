@@ -31,7 +31,7 @@ internal sealed class MappingEngine
         lock (_sync)
         {
             var target = _profile.Bindings.FirstOrDefault(binding => binding.Source.Id == key.Id)?.Target;
-            return target is not null && MotionShortcuts.All.Contains(target) ? target : null;
+            return target is not null && MotionShortcuts.IsValid(target) ? target : null;
         }
     }
 
@@ -72,7 +72,7 @@ internal sealed class MappingEngine
     private ControllerState StateUnsafe()
     {
         var active = _profile.Bindings
-            .Where(binding => _pressed.Contains(binding.Source.Id) && !MotionShortcuts.All.Contains(binding.Target))
+            .Where(binding => _pressed.Contains(binding.Source.Id) && !MotionShortcuts.IsValid(binding.Target))
             .Select(binding => binding.Target)
             .ToHashSet(StringComparer.Ordinal);
         foreach (var targets in _motionTargets.Values)

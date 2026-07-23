@@ -858,98 +858,200 @@ kbd {
   letter-spacing: 0.06em;
 }
 
-.motion-options {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(56px, 1fr));
-  gap: 6px;
-}
-
-.motion-option {
-  position: relative;
-  min-width: 0;
-  border-radius: 10px;
+.motion-builder {
+  padding: 9px;
+  border-radius: 13px;
   background: rgba(255, 255, 255, 0.035);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.065);
-  transition-property: background-color, box-shadow, scale;
-  transition-duration: 130ms;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.055);
 }
 
-.motion-option:hover {
-  background: rgba(255, 255, 255, 0.055);
-  box-shadow: 0 0 0 1px rgba(85, 230, 193, 0.24);
-}
-
-.motion-option:active {
-  scale: 0.96;
-}
-
-.motion-option.has-binding {
-  background: rgba(85, 230, 193, 0.075);
-  box-shadow: 0 0 0 1px rgba(85, 230, 193, 0.2);
-}
-
-.motion-bind {
+.motion-chord-summary,
+.motion-assignments-heading {
   display: flex;
-  width: 100%;
-  min-height: 44px;
-  align-items: flex-start;
-  justify-content: center;
-  flex-direction: column;
-  gap: 1px;
-  padding: 5px 22px 5px 8px;
-  border-radius: 10px;
-  background: transparent;
-  text-align: left;
+  min-height: 22px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.motion-bind span {
-  color: #dbe4e7;
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.motion-bind small {
-  width: 100%;
-  overflow: hidden;
+.motion-chord-summary span,
+.motion-assignments-heading span {
   color: var(--faint);
   font-size: 8px;
-  font-weight: 650;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.motion-chord-summary output {
+  overflow: hidden;
+  color: var(--mint);
+  font-size: 9px;
+  font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.has-binding .motion-bind small {
+.motion-chord-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(40px, 1fr));
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.motion-chord-buttons button {
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.065);
+  color: #87949d;
+  font-size: 9px;
+  font-weight: 800;
+  transition-property: background-color, box-shadow, color, scale;
+  transition-duration: 130ms;
+}
+
+.motion-chord-buttons button:hover {
+  background: rgba(255, 255, 255, 0.075);
+  color: #dbe4e7;
+}
+
+.motion-chord-buttons button:active,
+.motion-bind-combo:active:not(:disabled),
+.motion-assignment button:active {
+  scale: 0.96;
+}
+
+.motion-chord-buttons button.is-selected {
+  background: rgba(85, 230, 193, 0.12);
+  box-shadow: 0 0 0 1px rgba(85, 230, 193, 0.38), 0 5px 14px rgba(0, 0, 0, 0.16);
   color: var(--mint);
 }
 
-.motion-remove {
-  position: absolute;
-  right: 2px;
-  top: 2px;
+.motion-bind-combo {
   display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 7px;
+  border-radius: 9px;
+  background: rgba(85, 230, 193, 0.1);
+  box-shadow: 0 0 0 1px rgba(85, 230, 193, 0.22);
+  color: var(--mint);
+  font-size: 9px;
+  font-weight: 800;
+  transition-property: background-color, box-shadow, opacity, scale;
+  transition-duration: 130ms;
+}
+
+.motion-bind-combo:hover:not(:disabled) {
+  background: rgba(85, 230, 193, 0.16);
+  box-shadow: 0 0 0 1px rgba(85, 230, 193, 0.4), 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+.motion-bind-combo:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.motion-bind-combo svg {
+  width: 13px;
+  height: 13px;
+}
+
+.motion-assignments {
+  margin-top: 9px;
+}
+
+.motion-assignments-heading {
+  padding: 0 2px 4px;
+}
+
+.motion-assignments-heading small {
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--muted);
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.motion-assignment-list {
+  display: grid;
+  max-height: 96px;
+  gap: 5px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.motion-assignment-list > p {
+  min-height: 40px;
+  padding: 13px 9px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--faint);
+  font-size: 8px;
+  text-align: center;
+}
+
+.motion-assignment {
+  display: grid;
+  min-height: 40px;
+  grid-template-columns: minmax(40px, auto) minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 7px;
+  padding-left: 5px;
+  border-radius: 9px;
+  background: rgba(85, 230, 193, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(85, 230, 193, 0.12);
+}
+
+.motion-assignment kbd {
+  overflow: hidden;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #e7edef;
+  font-family: inherit;
+  font-size: 8px;
+  font-weight: 800;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.motion-assignment span {
+  overflow: hidden;
+  color: var(--mint);
+  font-size: 8px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.motion-assignment button {
+  display: grid;
   width: 40px;
   height: 40px;
-  align-items: flex-start;
-  justify-content: flex-end;
-  padding: 7px;
+  place-items: center;
   border-radius: 8px;
-  background: transparent;
   color: #71808b;
-  opacity: 0;
-  transition-property: color, opacity;
+  transition-property: color, scale;
   transition-duration: 120ms;
 }
 
-.motion-option:hover .motion-remove,
-.motion-remove:focus-visible {
-  opacity: 1;
-}
-
-.motion-remove:hover {
+.motion-assignment button:hover {
   color: var(--red);
 }
 
-.motion-remove svg {
+.motion-assignment button svg {
   width: 12px;
   height: 12px;
 }
