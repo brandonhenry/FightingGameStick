@@ -1,0 +1,17 @@
+export const IPC = {
+  getSnapshot: 'app:get-snapshot',
+  setEnabled: 'app:set-enabled',
+  setPassthrough: 'app:set-passthrough',
+  selectProfile: 'profiles:select',
+  createProfile: 'profiles:create',
+  renameProfile: 'profiles:rename',
+  duplicateProfile: 'profiles:duplicate',
+  deleteProfile: 'profiles:delete',
+  removeBinding: 'profiles:remove-binding',
+  beginCapture: 'input:begin-capture',
+  cancelCapture: 'input:cancel-capture',
+  installDriver: 'driver:install',
+  recheck: 'app:recheck',
+  openControllerPanel: 'driver:open-controller-panel',
+  snapshot: 'app:snapshot',
+} as const;

@@ -1,0 +1,11 @@
+node_modules/
+.vite/
+out/
+coverage/
+resources/driver/*.exe
+resources/input-host/win-x64/*.exe
+resources/input-host/win-x64/*.pdb
+native/**/bin/
+native/**/obj/
+*.log
+.DS_Store

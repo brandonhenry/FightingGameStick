@@ -1,0 +1,123 @@
+name: Publish Windows release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows-release:
+    name: Build, verify, and publish Windows
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm fetch:driver
+      - run: pnpm build:host
+
+      - name: Install publisher-signed ViGEmBus for the isolated CI probe
+        shell: pwsh
+        run: |
+          $process = Start-Process `
+            -FilePath "resources/driver/ViGEmBus_1.22.0_x64_x86_arm64.exe" `
+            -ArgumentList "/quiet", "/norestart" `
+            -Wait `
+            -PassThru
+          if ($process.ExitCode -notin @(0, 3010)) {
+            throw "ViGEmBus installer exited with code $($process.ExitCode)"
+          }
+
+      - name: Verify virtual reports through XInputGetState
+        run: resources/input-host/win-x64/FightingGameStick.InputHost.exe --self-test
+
+      - name: Restore signing certificate when configured
+        if: env.WINDOWS_CERTIFICATE_BASE64 != ''
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+        run: |
+          [IO.File]::WriteAllBytes(
+            "signing-certificate.pfx",
+            [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64)
+          )
+          "WINDOWS_CERTIFICATE_FILE=$pwd/signing-certificate.pfx" >> $env:GITHUB_ENV
+
+      - name: Build Windows installer and portable archive
+        run: pnpm make
+        env:
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+
+      - name: Prepare release assets and checksums
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $setup = Get-ChildItem out/make -Recurse -File -Filter "FightingGameStickSetup.exe" |
+            Select-Object -First 1
+          $portable = Get-ChildItem out/make -Recurse -File -Filter "*.zip" |
+            Where-Object { $_.FullName -match "win32" } |
+            Select-Object -First 1
+
+          if (-not $setup) { throw "Windows setup executable was not produced." }
+          if (-not $portable) { throw "Windows portable archive was not produced." }
+
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          Copy-Item $setup.FullName "release-assets/FightingGameStickSetup-$version.exe"
+          Copy-Item $portable.FullName "release-assets/FightingGameStick-Portable-$version-win-x64.zip"
+
+          Get-ChildItem release-assets -File |
+            Get-FileHash -Algorithm SHA256 |
+            ForEach-Object {
+              "$($_.Hash.ToLower())  $([IO.Path]::GetFileName($_.Path))"
+            } |
+            Set-Content "release-assets/SHA256SUMS.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fighting-Game-Stick-Windows
+          path: release-assets/*
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          gh release create $env:RELEASE_TAG release-assets/* `
+            --repo $env:GITHUB_REPOSITORY `
+            --title "Fighting Game Stick $env:RELEASE_TAG" `
+            --generate-notes `
+            --verify-tag

@@ -1,0 +1,75 @@
+name: Verify and package
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: TypeScript quality (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - if: runner.os == 'macOS'
+        run: pnpm package
+
+  windows-release:
+    name: Windows host, XInput probe, and installer
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm fetch:driver
+      - run: pnpm build:host
+      - name: Install publisher-signed ViGEmBus for isolated CI probe
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath "resources/driver/ViGEmBus_1.22.0_x64_x86_arm64.exe" -ArgumentList "/quiet", "/norestart" -Wait -PassThru
+          if ($process.ExitCode -notin @(0, 3010)) { exit $process.ExitCode }
+      - name: Verify reports through independent XInputGetState probe
+        run: resources/input-host/win-x64/FightingGameStick.InputHost.exe --self-test
+      - name: Restore signing certificate when configured
+        if: env.WINDOWS_CERTIFICATE_BASE64 != ''
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+        run: |
+          [IO.File]::WriteAllBytes("signing-certificate.pfx", [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
+          "WINDOWS_CERTIFICATE_FILE=$pwd/signing-certificate.pfx" >> $env:GITHUB_ENV
+      - run: pnpm make
+        env:
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Fighting-Game-Stick-Windows
+          path: out/make/**
+          if-no-files-found: error
