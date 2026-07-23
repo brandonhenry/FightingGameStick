@@ -63,6 +63,9 @@ describe('App', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Bind A' })[0]!);
     await waitFor(() => expect(bridge.beginCapture).toHaveBeenCalledWith('a'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bind QCF + A' }));
+    await waitFor(() => expect(bridge.beginCapture).toHaveBeenCalledWith('qcf-a'));
   });
 
   it('exposes pass-through and diagnostics without hiding safety status', async () => {

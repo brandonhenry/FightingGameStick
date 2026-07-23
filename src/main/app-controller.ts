@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
-import type { ControllerTarget, DiagnosticResult, HostEvent, MappingProfile, PhysicalKey } from '../shared/types';
-import { createNeutralControllerState } from '../shared/controller';
+import type { BindingTarget, DiagnosticResult, HostEvent, MappingProfile, PhysicalKey } from '../shared/types';
+import { bindingTargetLabel, createNeutralControllerState } from '../shared/controller';
 import { makeInitialSnapshot } from '../shared/defaults';
 import { physicalKeyId } from '../shared/mapping-engine';
 import type { AppSnapshot } from '../shared/types';
@@ -121,7 +121,7 @@ export class AppController {
     this.refreshProfiles();
   }
 
-  beginCapture(target: ControllerTarget): void {
+  beginCapture(target: BindingTarget): void {
     this.snapshot.captureTarget = target;
     this.host.capture(target);
     this.publish();
@@ -203,11 +203,11 @@ export class AppController {
           this.snapshot.captureTarget = null;
           this.host.setProfile(this.profiles.activeProfile());
           this.refreshProfiles(false);
-          this.addLog(`Bound ${event.key.label} to ${event.target}.`);
+          this.addLog(`Bound ${event.key.label} to ${bindingTargetLabel(event.target)}.`);
           if (previous && previous.target !== event.target) {
             this.snapshot.notice = {
               id: Date.now(),
-              message: `${event.key.label} moved from ${previous.target} to ${event.target}.`,
+              message: `${event.key.label} moved from ${bindingTargetLabel(previous.target)} to ${bindingTargetLabel(event.target)}.`,
             };
           }
         }

@@ -1,10 +1,12 @@
 import {
   controllerTargets,
   digitalButtonTargets,
+  type BindingTarget,
   type ControllerState,
   type ControllerTarget,
   type DigitalButtonTarget,
 } from './types';
+import { isMotionShortcutTarget, motionShortcutLabel } from './motion-shortcuts';
 
 export const targetLabels: Record<ControllerTarget, string> = {
   'dpad-up': 'D-pad up',
@@ -54,6 +56,14 @@ export const targetShortLabels: Record<ControllerTarget, string> = {
   'left-stick-click': 'L3',
   'right-stick-click': 'R3',
 };
+
+export function bindingTargetLabel(target: BindingTarget): string {
+  return isMotionShortcutTarget(target) ? motionShortcutLabel(target) : targetLabels[target];
+}
+
+export function bindingTargetShortLabel(target: BindingTarget): string {
+  return isMotionShortcutTarget(target) ? motionShortcutLabel(target) : targetShortLabels[target];
+}
 
 export function createNeutralControllerState(sequence = 0): ControllerState {
   const buttons = Object.fromEntries(

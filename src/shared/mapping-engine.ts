@@ -1,5 +1,12 @@
 import { createNeutralControllerState } from './controller';
-import type { ControllerState, ControllerTarget, MappingProfile, PhysicalKey } from './types';
+import { isMotionShortcutTarget } from './motion-shortcuts';
+import type {
+  ControllerState,
+  ControllerTarget,
+  MappingProfile,
+  MotionShortcutTarget,
+  PhysicalKey,
+} from './types';
 
 export function physicalKeyId(key: Pick<PhysicalKey, 'scanCode' | 'extended'>): string {
   return `${key.scanCode}:${key.extended ? 1 : 0}`;
@@ -8,6 +15,7 @@ export function physicalKeyId(key: Pick<PhysicalKey, 'scanCode' | 'extended'>): 
 export class MappingEngine {
   private profile: MappingProfile;
   private readonly pressed = new Set<string>();
+  private readonly motionTargets = new Map<string, readonly ControllerTarget[]>();
   private sequence = 0;
 
   constructor(profile: MappingProfile) {
@@ -17,6 +25,7 @@ export class MappingEngine {
   configure(profile: MappingProfile): ControllerState {
     this.profile = structuredClone(profile);
     this.pressed.clear();
+    this.motionTargets.clear();
     return this.getState();
   }
 
@@ -33,6 +42,7 @@ export class MappingEngine {
 
   reset(): ControllerState {
     this.pressed.clear();
+    this.motionTargets.clear();
     return this.getState();
   }
 
@@ -41,12 +51,29 @@ export class MappingEngine {
     return this.profile.bindings.some((binding) => physicalKeyId(binding.source) === id);
   }
 
+  motionShortcutFor(key: PhysicalKey): MotionShortcutTarget | null {
+    const id = physicalKeyId(key);
+    const target = this.profile.bindings.find((binding) => physicalKeyId(binding.source) === id)?.target;
+    return target && isMotionShortcutTarget(target) ? target : null;
+  }
+
+  setMotionTargets(runId: string, targets: readonly ControllerTarget[] | null): ControllerState {
+    if (targets) this.motionTargets.set(runId, [...targets]);
+    else this.motionTargets.delete(runId);
+    return this.getState();
+  }
+
   getState(): ControllerState {
     const state = createNeutralControllerState(++this.sequence);
     const active = new Set<ControllerTarget>();
 
     for (const binding of this.profile.bindings) {
-      if (this.pressed.has(physicalKeyId(binding.source))) active.add(binding.target);
+      if (this.pressed.has(physicalKeyId(binding.source)) && !isMotionShortcutTarget(binding.target)) {
+        active.add(binding.target);
+      }
+    }
+    for (const targets of this.motionTargets.values()) {
+      for (const target of targets) active.add(target);
     }
 
     for (const target of Object.keys(state.buttons) as Array<keyof typeof state.buttons>) {

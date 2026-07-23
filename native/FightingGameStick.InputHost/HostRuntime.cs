@@ -13,12 +13,16 @@ internal sealed class HostRuntime : IAsyncDisposable
         SingleWriter = true
     });
     private readonly SemaphoreSlim _outputLock = new(1, 1);
+    private readonly SemaphoreSlim _controllerLock = new(1, 1);
     private readonly CancellationTokenSource _shutdown = new();
+    private readonly object _motionSync = new();
+    private readonly Dictionary<string, CancellationTokenSource> _motionRuns = [];
     private LowLevelKeyboardHook? _hook;
     private VirtualController? _controller;
     private MappingEngine? _engine;
     private Task? _inputWorker;
     private bool _enabled;
+    private long _lastAppliedSequence;
 
     public async Task HandleAsync(string line)
     {
@@ -67,6 +71,7 @@ internal sealed class HostRuntime : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         _shutdown.Cancel();
+        CancelMotionRuns();
         _hook?.SetEnabled(false);
         try { Reset(); } catch { /* The driver may have disconnected. */ }
         _hook?.Dispose();
@@ -76,6 +81,7 @@ internal sealed class HostRuntime : IAsyncDisposable
             try { await _inputWorker.ConfigureAwait(false); } catch { /* Shutdown remains best effort. */ }
         }
         _controller?.Dispose();
+        _controllerLock.Dispose();
         _outputLock.Dispose();
         _shutdown.Dispose();
     }
@@ -127,12 +133,17 @@ internal sealed class HostRuntime : IAsyncDisposable
     {
         _enabled = value;
         _hook?.SetEnabled(value);
-        if (!value) Reset();
+        if (!value)
+        {
+            CancelMotionRuns();
+            Reset();
+        }
         Emit(new { type = "enabled", value, reason });
     }
 
     private void Reset()
     {
+        CancelMotionRuns();
         if (_engine is not null) PublishState(_engine.Reset());
     }
 
@@ -153,8 +164,13 @@ internal sealed class HostRuntime : IAsyncDisposable
             await EmitAsync(new { type = "key", key = input.Key, down = input.Down, timestamp = input.Timestamp });
             if (_enabled && _engine is not null)
             {
+                var shortcut = input.Down ? _engine.MotionShortcutFor(input.Key) : null;
                 var state = _engine.Transition(input.Key, input.Down);
-                if (state is not null)
+                if (state is not null && shortcut is not null)
+                {
+                    _ = PlayMotionAsync(input.Key.Id, shortcut);
+                }
+                else if (state is not null)
                 {
                     try
                     {
@@ -176,8 +192,78 @@ internal sealed class HostRuntime : IAsyncDisposable
 
     private async Task PublishStateAsync(ControllerState state)
     {
-        _controller?.Apply(state);
-        await EmitAsync(new { type = "controller", state });
+        await _controllerLock.WaitAsync();
+        try
+        {
+            if (state.Sequence <= _lastAppliedSequence) return;
+            _lastAppliedSequence = state.Sequence;
+            _controller?.Apply(state);
+            await EmitAsync(new { type = "controller", state });
+        }
+        finally
+        {
+            _controllerLock.Release();
+        }
+    }
+
+    private async Task PlayMotionAsync(string runId, string shortcut)
+    {
+        var cancellation = new CancellationTokenSource();
+        lock (_motionSync)
+        {
+            if (_motionRuns.Remove(runId, out var previous))
+            {
+                previous.Cancel();
+            }
+            _motionRuns[runId] = cancellation;
+        }
+
+        try
+        {
+            var frames = MotionShortcuts.Frames(shortcut);
+            for (var index = 0; index < frames.Count; index++)
+            {
+                cancellation.Token.ThrowIfCancellationRequested();
+                if (!_enabled || _engine is null) return;
+                await PublishStateAsync(_engine.SetMotionTargets(runId, frames[index]));
+                var duration = index == frames.Count - 1 ? MotionShortcuts.AttackMilliseconds : MotionShortcuts.StepMilliseconds;
+                await Task.Delay(duration, cancellation.Token);
+            }
+            if (_enabled && _engine is not null)
+                await PublishStateAsync(_engine.SetMotionTargets(runId, null));
+        }
+        catch (OperationCanceledException)
+        {
+            // Reset/configure owns the neutral report when a shortcut is interrupted.
+        }
+        catch (Exception error)
+        {
+            _enabled = false;
+            _hook?.SetEnabled(false);
+            CancelMotionRuns();
+            if (_engine is not null) await PublishStateAsync(_engine.Reset());
+            await EmitFaultAsync("DRIVER_DISCONNECTED", error.Message, true);
+        }
+        finally
+        {
+            lock (_motionSync)
+            {
+                if (_motionRuns.TryGetValue(runId, out var current) && ReferenceEquals(current, cancellation))
+                    _motionRuns.Remove(runId);
+            }
+            cancellation.Dispose();
+        }
+    }
+
+    private void CancelMotionRuns()
+    {
+        CancellationTokenSource[] runs;
+        lock (_motionSync)
+        {
+            runs = [.. _motionRuns.Values];
+            _motionRuns.Clear();
+        }
+        foreach (var run in runs) run.Cancel();
     }
 
     private static void ValidateProfile(MappingProfile profile)
@@ -186,7 +272,7 @@ internal sealed class HostRuntime : IAsyncDisposable
         if (profile.Bindings.Count > 256) throw new InvalidDataException("Profile has too many bindings.");
         var duplicateSource = profile.Bindings.GroupBy(binding => binding.Source.Id).FirstOrDefault(group => group.Count() > 1);
         if (duplicateSource is not null) throw new InvalidDataException($"Duplicate source key {duplicateSource.Key}.");
-        if (profile.Bindings.Any(binding => !ControllerTargets.All.Contains(binding.Target)))
+        if (profile.Bindings.Any(binding => !ControllerTargets.All.Contains(binding.Target) && !MotionShortcuts.All.Contains(binding.Target)))
             throw new InvalidDataException("Profile contains an unknown controller target.");
     }
 
@@ -225,6 +311,30 @@ internal sealed class HostRuntime : IAsyncDisposable
             await Task.Delay(50);
         }
         return null;
+    }
+}
+
+internal static class MotionShortcuts
+{
+    public const int StepMilliseconds = 35;
+    public const int AttackMilliseconds = 50;
+    private static readonly string[] Attacks = ["a", "b", "x", "y", "lb", "rb", "lt", "rt"];
+    public static readonly HashSet<string> All =
+        Attacks.SelectMany(attack => new[] { $"qcf-{attack}", $"qcb-{attack}" }).ToHashSet(StringComparer.Ordinal);
+
+    public static IReadOnlyList<IReadOnlyList<string>> Frames(string target)
+    {
+        if (!All.Contains(target)) throw new InvalidDataException("Unknown motion shortcut.");
+        var separator = target.IndexOf('-');
+        var motion = target[..separator];
+        var attack = target[(separator + 1)..];
+        var horizontal = motion == "qcf" ? "dpad-right" : "dpad-left";
+        return
+        [
+            ["dpad-down"],
+            ["dpad-down", horizontal],
+            [horizontal, attack]
+        ];
     }
 }
 

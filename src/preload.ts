@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC } from './shared/ipc';
-import type { AppBridge, AppSnapshot, ControllerTarget } from './shared/types';
+import type { AppBridge, AppSnapshot, BindingTarget } from './shared/types';
 
 const bridge: AppBridge = {
   getSnapshot: () => ipcRenderer.invoke(IPC.getSnapshot),
@@ -12,7 +12,7 @@ const bridge: AppBridge = {
   duplicateProfile: (profileId) => ipcRenderer.invoke(IPC.duplicateProfile, profileId),
   deleteProfile: (profileId) => ipcRenderer.invoke(IPC.deleteProfile, profileId),
   removeBinding: (bindingId) => ipcRenderer.invoke(IPC.removeBinding, bindingId),
-  beginCapture: (target: ControllerTarget) => ipcRenderer.invoke(IPC.beginCapture, target),
+  beginCapture: (target: BindingTarget) => ipcRenderer.invoke(IPC.beginCapture, target),
   cancelCapture: () => ipcRenderer.invoke(IPC.cancelCapture),
   installDriver: () => ipcRenderer.invoke(IPC.installDriver),
   recheck: () => ipcRenderer.invoke(IPC.recheck),

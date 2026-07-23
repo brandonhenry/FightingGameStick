@@ -1,4 +1,4 @@
-export const PROTOCOL_VERSION = 1 as const;
+export const PROTOCOL_VERSION = 2 as const;
 
 export const controllerTargets = [
   'dpad-up',
@@ -29,6 +29,29 @@ export const controllerTargets = [
 
 export type ControllerTarget = (typeof controllerTargets)[number];
 
+export const motionShortcutTargets = [
+  'qcf-a',
+  'qcf-b',
+  'qcf-x',
+  'qcf-y',
+  'qcf-lb',
+  'qcf-rb',
+  'qcf-lt',
+  'qcf-rt',
+  'qcb-a',
+  'qcb-b',
+  'qcb-x',
+  'qcb-y',
+  'qcb-lb',
+  'qcb-rb',
+  'qcb-lt',
+  'qcb-rt',
+] as const;
+
+export type MotionShortcutTarget = (typeof motionShortcutTargets)[number];
+export type BindingTarget = ControllerTarget | MotionShortcutTarget;
+export const bindingTargets = [...controllerTargets, ...motionShortcutTargets] as const;
+
 export const digitalButtonTargets = [
   'dpad-up',
   'dpad-down',
@@ -58,7 +81,7 @@ export interface PhysicalKey {
 export interface Binding {
   id: string;
   source: PhysicalKey;
-  target: ControllerTarget;
+  target: BindingTarget;
 }
 
 export interface MappingProfile {
@@ -103,7 +126,7 @@ export interface RuntimeStatus {
 
 export interface PressedKey extends PhysicalKey {
   pressedAt: number;
-  mappedTarget?: ControllerTarget;
+  mappedTarget?: BindingTarget;
 }
 
 export interface DiagnosticResult {
@@ -122,7 +145,7 @@ export interface AppSnapshot {
   pressedKeys: PressedKey[];
   diagnostics: DiagnosticResult[];
   logs: string[];
-  captureTarget: ControllerTarget | null;
+  captureTarget: BindingTarget | null;
   notice: { id: number; message: string } | null;
 }
 
@@ -138,7 +161,7 @@ export type HostCommand =
   | { type: 'configure'; profile: MappingProfile }
   | { type: 'enable'; value: boolean }
   | { type: 'passthrough'; value: boolean }
-  | { type: 'capture'; target: ControllerTarget }
+  | { type: 'capture'; target: BindingTarget }
   | { type: 'cancel-capture' }
   | { type: 'reset' }
   | { type: 'ping'; sentAt: number }
@@ -152,7 +175,7 @@ export type HostEvent =
       playerIndex: number | null;
     }
   | { type: 'key'; key: PhysicalKey; down: boolean; timestamp: number }
-  | { type: 'capture'; key: PhysicalKey; target: ControllerTarget }
+  | { type: 'capture'; key: PhysicalKey; target: BindingTarget }
   | { type: 'controller'; state: ControllerState }
   | { type: 'enabled'; value: boolean; reason?: string }
   | { type: 'fault'; code: string; message: string; recoverable: boolean }
@@ -169,7 +192,7 @@ export interface AppBridge {
   duplicateProfile(profileId: string): Promise<MappingProfile>;
   deleteProfile(profileId: string): Promise<void>;
   removeBinding(bindingId: string): Promise<void>;
-  beginCapture(target: ControllerTarget): Promise<void>;
+  beginCapture(target: BindingTarget): Promise<void>;
   cancelCapture(): Promise<void>;
   installDriver(): Promise<void>;
   recheck(): Promise<void>;

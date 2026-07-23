@@ -21,9 +21,16 @@ The honest compatibility promise is **XInput games that do not deliberately bloc
 - Mapped-key blocking by default, with an optional keyboard pass-through switch.
 - An unbindable `Ctrl + Alt + F12` emergency disable and matching tray action.
 - Neutral SOCD cleaning, circular digital-stick diagonals, digital 0/100% triggers, repeat filtering, and shared-target reference behavior.
+- One-key QCF (`↓ ↘ →`) and QCB (`↓ ↙ ←`) shortcuts for A, B, X, Y, LB, RB, LT, and RT, with a live step-by-step preview.
 - Manual profile create, rename, duplicate, switch, delete, and atomic versioned persistence.
 - Live keyboard rollover testing, gamepad/fight-stick views, driver/helper/player-slot status, logs, and repair actions.
 - Safe neutral reset on pause, profile changes, suspend/lock, helper loss, explicit quit, and parent-pipe closure.
+
+## Motion shortcuts
+
+Open **Motion shortcuts**, choose a QCF or QCB attack, then press the keyboard key that should play it. A shortcut sends down, diagonal, and forward/back + attack as a short timed sequence through the same virtual controller. Normal held inputs remain active, auto-repeat does not restart the shortcut, and pausing or changing profiles immediately cancels the sequence and releases its outputs.
+
+Motion shortcuts may be considered macros by a game, league, or tournament. Check the rules for where you play before using them competitively.
 
 ## Architecture
 

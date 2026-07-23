@@ -1,7 +1,7 @@
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron';
 import { ipcMain } from 'electron';
 import { z } from 'zod';
-import { controllerTargetSchema } from '../shared/schemas';
+import { bindingTargetSchema } from '../shared/schemas';
 import { IPC } from '../shared/ipc';
 import type { AppController } from './app-controller';
 
@@ -52,7 +52,7 @@ export function registerIpcHandlers(controller: AppController, getWindow: () => 
   });
   ipcMain.handle(IPC.beginCapture, async (event, target: unknown) => {
     trusted(event);
-    controller.beginCapture(controllerTargetSchema.parse(target));
+    controller.beginCapture(bindingTargetSchema.parse(target));
   });
   ipcMain.handle(IPC.cancelCapture, async (event) => {
     trusted(event);

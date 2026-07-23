@@ -765,10 +765,193 @@ kbd {
 
 .devices-grid {
   display: grid;
-  min-height: 0;
-  flex: 1;
+  flex: none;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+.motion-panel {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.36fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(16, 22, 30, 0.92);
+  box-shadow: var(--shadow-card);
+}
+
+.motion-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 3px 2px;
+}
+
+.motion-panel-heading > div {
+  min-width: 0;
+}
+
+.motion-panel-heading h2 {
+  font-size: 15px;
+  letter-spacing: -0.025em;
+}
+
+.motion-panel-heading p {
+  max-width: 300px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.motion-groups {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.motion-group {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 15px;
+  background: #0c1218;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.055);
+}
+
+.motion-group > header {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px 8px;
+}
+
+.motion-group > header div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.motion-group > header strong {
+  color: var(--mint);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.motion-group > header span {
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.motion-group > header code {
+  flex: none;
+  color: #bdc9cf;
+  font-family: "Segoe UI Symbol", "Apple Symbols", sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+}
+
+.motion-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(56px, 1fr));
+  gap: 6px;
+}
+
+.motion-option {
+  position: relative;
+  min-width: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.065);
+  transition-property: background-color, box-shadow, scale;
+  transition-duration: 130ms;
+}
+
+.motion-option:hover {
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: 0 0 0 1px rgba(85, 230, 193, 0.24);
+}
+
+.motion-option:active {
+  scale: 0.96;
+}
+
+.motion-option.has-binding {
+  background: rgba(85, 230, 193, 0.075);
+  box-shadow: 0 0 0 1px rgba(85, 230, 193, 0.2);
+}
+
+.motion-bind {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 22px 5px 8px;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+}
+
+.motion-bind span {
+  color: #dbe4e7;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.motion-bind small {
+  width: 100%;
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 8px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.has-binding .motion-bind small {
+  color: var(--mint);
+}
+
+.motion-remove {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 7px;
+  border-radius: 8px;
+  background: transparent;
+  color: #71808b;
+  opacity: 0;
+  transition-property: color, opacity;
+  transition-duration: 120ms;
+}
+
+.motion-option:hover .motion-remove,
+.motion-remove:focus-visible {
+  opacity: 1;
+}
+
+.motion-remove:hover {
+  color: var(--red);
+}
+
+.motion-remove svg {
+  width: 12px;
+  height: 12px;
 }
 
 .device-card {
@@ -1542,6 +1725,7 @@ kbd {
   .devices-grid { grid-template-columns: 1fr; }
   .device-card { min-height: 390px; }
   .device-stage { padding-right: 5px; }
+  .motion-panel { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

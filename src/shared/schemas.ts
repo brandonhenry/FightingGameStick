@@ -1,7 +1,9 @@
 import { z } from 'zod';
-import { controllerTargets, digitalButtonTargets, PROTOCOL_VERSION } from './types';
+import { bindingTargets, controllerTargets, digitalButtonTargets, motionShortcutTargets, PROTOCOL_VERSION } from './types';
 
 export const controllerTargetSchema = z.enum(controllerTargets);
+export const motionShortcutTargetSchema = z.enum(motionShortcutTargets);
+export const bindingTargetSchema = z.enum(bindingTargets);
 export const digitalButtonTargetSchema = z.enum(digitalButtonTargets);
 
 export const physicalKeySchema = z.object({
@@ -14,7 +16,7 @@ export const physicalKeySchema = z.object({
 export const bindingSchema = z.object({
   id: z.string().min(1).max(128),
   source: physicalKeySchema,
-  target: controllerTargetSchema,
+  target: bindingTargetSchema,
 });
 
 export const mappingProfileSchema = z.object({
@@ -58,7 +60,7 @@ export const hostEventSchema = z.discriminatedUnion('type', [
     down: z.boolean(),
     timestamp: z.number().nonnegative(),
   }),
-  z.object({ type: z.literal('capture'), key: physicalKeySchema, target: controllerTargetSchema }),
+  z.object({ type: z.literal('capture'), key: physicalKeySchema, target: bindingTargetSchema }),
   z.object({ type: z.literal('controller'), state: controllerStateSchema }),
   z.object({ type: z.literal('enabled'), value: z.boolean(), reason: z.string().optional() }),
   z.object({

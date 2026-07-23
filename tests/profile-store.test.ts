@@ -62,6 +62,16 @@ describe('ProfileStore', () => {
     expect(shared.some((item) => item.source.scanCode === 31)).toBe(true);
   });
 
+  it('persists a motion shortcut and moves the source from its previous binding', async () => {
+    const { store } = await createStore();
+    const source = { scanCode: 16, virtualKey: 81, extended: false, label: 'Q' };
+    await store.bind(source, 'a');
+    await store.bind(source, 'qcf-a');
+    const matches = store.activeProfile().bindings.filter((binding) => binding.source.scanCode === 16);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]?.target).toBe('qcf-a');
+  });
+
   it('recovers from malformed data and keeps a usable profile', async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'fighting-game-stick-broken-'));
     directories.push(directory);

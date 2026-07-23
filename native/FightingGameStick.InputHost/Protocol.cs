@@ -4,7 +4,7 @@ namespace FightingGameStick.InputHost;
 
 internal static class Protocol
 {
-    public const int Version = 1;
+    public const int Version = 2;
 
     public static readonly string[] DigitalTargets =
     [

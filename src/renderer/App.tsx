@@ -9,20 +9,32 @@ import {
   Plus,
   Power,
   RefreshCw,
+  Route,
   Settings2,
   ShieldAlert,
   ShieldCheck,
   Trash2,
   X,
 } from 'lucide-react';
-import { allTargets, isTargetActive, targetLabels, targetShortLabels } from '../shared/controller';
+import {
+  allTargets,
+  bindingTargetLabel,
+  bindingTargetShortLabel,
+  isTargetActive,
+  targetLabels,
+  targetShortLabels,
+} from '../shared/controller';
+import { motionAttacks } from '../shared/motion-shortcuts';
 import appIconUrl from '../../assets/icons/app.png';
 import { getFightStickLeverPose } from './fight-stick-pose';
 import type {
   AppSnapshot,
+  BindingTarget,
   ControllerState,
   ControllerTarget,
   DiagnosticResult,
+  MappingProfile,
+  MotionShortcutTarget,
 } from '../shared/types';
 
 type ProfileDialog = { mode: 'new' | 'rename'; initial: string } | null;
@@ -99,7 +111,7 @@ export function App() {
           ? 'Needs attention'
           : 'Connecting';
 
-  const bind = (target: ControllerTarget) => {
+  const bind = (target: BindingTarget) => {
     void run(() => window.fightingGameStick.beginCapture(target));
   };
 
@@ -205,7 +217,7 @@ export function App() {
                 snapshot.pressedKeys.map((key) => (
                   <div className="pressed-key" key={`${key.scanCode}:${key.extended}`}>
                     <kbd>{key.label}</kbd>
-                    <span>{key.mappedTarget ? targetShortLabels[key.mappedTarget] : 'Unmapped'}</span>
+                    <span>{key.mappedTarget ? bindingTargetShortLabel(key.mappedTarget) : 'Unmapped'}</span>
                   </div>
                 ))
               ) : (
@@ -297,6 +309,8 @@ export function App() {
               <FightStickVisual state={snapshot.controller} onTarget={bind} />
             </DeviceCard>
           </div>
+
+          <MotionShortcutsPanel profile={activeProfile} onTarget={bind} run={run} />
 
           <div className={`safety-strip ${runtime.enabled ? 'safety-live' : ''}`}>
             {runtime.enabled ? <ShieldCheck /> : <ShieldAlert />}
@@ -518,14 +532,73 @@ function DirectionHit({ target, x, y, label, state, onTarget, symbol }: {
   );
 }
 
-function CaptureOverlay({ target, onCancel }: { target: ControllerTarget; onCancel: () => void }) {
+function MotionShortcutsPanel({ profile, onTarget, run }: {
+  profile: MappingProfile;
+  onTarget: (target: BindingTarget) => void;
+  run: (action: () => Promise<unknown>, success?: string) => Promise<void>;
+}) {
+  const motions = [
+    { id: 'qcf', name: 'Quarter-circle forward', notation: '↓  ↘  →' },
+    { id: 'qcb', name: 'Quarter-circle back', notation: '↓  ↙  ←' },
+  ] as const;
+
+  return (
+    <section className="motion-panel" aria-labelledby="motion-shortcuts-title">
+      <header className="motion-panel-heading">
+        <span className="device-icon"><Route /></span>
+        <div>
+          <span className="eyebrow">One-key commands</span>
+          <h2 id="motion-shortcuts-title">Motion shortcuts</h2>
+          <p>Bind a key to play a complete motion plus an attack. Check your game or tournament rules before use.</p>
+        </div>
+      </header>
+      <div className="motion-groups">
+        {motions.map((motion) => (
+          <article className="motion-group" key={motion.id}>
+            <header>
+              <div><strong>{motion.id.toUpperCase()}</strong><span>{motion.name}</span></div>
+              <code aria-label={`${motion.name}: ${motion.notation}`}>{motion.notation}</code>
+            </header>
+            <div className="motion-options">
+              {motionAttacks.map((attack) => {
+                const target = `${motion.id}-${attack}` as MotionShortcutTarget;
+                const bindings = profile.bindings.filter((binding) => binding.target === target);
+                const firstBinding = bindings[0];
+                return (
+                  <div className={`motion-option ${bindings.length ? 'has-binding' : ''}`} key={target}>
+                    <button className="motion-bind" onClick={() => onTarget(target)} aria-label={`Bind ${bindingTargetLabel(target)}`}>
+                      <span>{attack.toUpperCase()}</span>
+                      <small>{bindings.length ? bindings.map((binding) => binding.source.label).join(', ') : 'Add key'}</small>
+                    </button>
+                    {firstBinding && (
+                      <button
+                        className="motion-remove"
+                        aria-label={`Remove ${firstBinding.source.label} from ${bindingTargetLabel(target)}`}
+                        title={`Remove ${firstBinding.source.label}`}
+                        onClick={() => void run(() => window.fightingGameStick.removeBinding(firstBinding.id))}
+                      >
+                        <X />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CaptureOverlay({ target, onCancel }: { target: BindingTarget; onCancel: () => void }) {
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onCancel()}>
       <div className="capture-card" role="dialog" aria-modal="true" aria-labelledby="capture-title">
         <button className="modal-close" onClick={onCancel} aria-label="Cancel binding"><X /></button>
         <div className="capture-rings" aria-hidden="true"><span /><span /><kbd>?</kbd></div>
         <span className="eyebrow">Listening for a key</span>
-        <h2 id="capture-title">Bind {targetLabels[target]}</h2>
+        <h2 id="capture-title">Bind {bindingTargetLabel(target)}</h2>
         <p>Press the keyboard key you want to use. If it is already bound, it will move here.</p>
         <button className="secondary-button" onClick={onCancel}>Cancel</button>
       </div>

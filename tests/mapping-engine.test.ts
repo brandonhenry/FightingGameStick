@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MappingEngine } from '../src/shared/mapping-engine';
+import { motionShortcutFrames } from '../src/shared/motion-shortcuts';
 import type { Binding, MappingProfile, PhysicalKey } from '../src/shared/types';
 
 const key = (scanCode: number, label: string): PhysicalKey => ({ scanCode, virtualKey: scanCode, extended: false, label });
@@ -107,5 +108,36 @@ describe('MappingEngine', () => {
     const next = engine.configure(profile([binding(a, 'b')]));
     expect(next.buttons.a).toBe(false);
     expect(next.buttons.b).toBe(false);
+  });
+
+  it('overlays quarter-circle shortcuts without releasing held normal inputs', () => {
+    const held = key(30, 'A');
+    const shortcut = key(16, 'Q');
+    const engine = new MappingEngine(profile([binding(held, 'x'), binding(shortcut, 'qcf-a')]));
+    engine.transition(held, true);
+    expect(engine.motionShortcutFor(shortcut)).toBe('qcf-a');
+
+    const [down, diagonal, attack] = motionShortcutFrames('qcf-a');
+    let state = engine.setMotionTargets('q', down!);
+    expect(state.buttons['dpad-down']).toBe(true);
+    expect(state.buttons.x).toBe(true);
+    state = engine.setMotionTargets('q', diagonal!);
+    expect(state.buttons['dpad-down']).toBe(true);
+    expect(state.buttons['dpad-right']).toBe(true);
+    state = engine.setMotionTargets('q', attack!);
+    expect(state.buttons['dpad-right']).toBe(true);
+    expect(state.buttons.a).toBe(true);
+    expect(state.buttons.x).toBe(true);
+    state = engine.setMotionTargets('q', null);
+    expect(state.buttons.a).toBe(false);
+    expect(state.buttons.x).toBe(true);
+  });
+
+  it('generates quarter-circle-back on the left side', () => {
+    expect(motionShortcutFrames('qcb-rt')).toEqual([
+      ['dpad-down'],
+      ['dpad-down', 'dpad-left'],
+      ['dpad-left', 'rt'],
+    ]);
   });
 });

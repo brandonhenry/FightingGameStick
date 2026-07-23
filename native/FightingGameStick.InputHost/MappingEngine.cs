@@ -2,39 +2,81 @@ namespace FightingGameStick.InputHost;
 
 internal sealed class MappingEngine
 {
+    private readonly object _sync = new();
     private MappingProfile _profile;
     private readonly HashSet<string> _pressed = [];
+    private readonly Dictionary<string, IReadOnlyList<string>> _motionTargets = [];
     private long _sequence;
 
     public MappingEngine(MappingProfile profile) => _profile = profile;
 
     public ControllerState Configure(MappingProfile profile)
     {
-        _profile = profile;
-        _pressed.Clear();
-        return State();
+        lock (_sync)
+        {
+            _profile = profile;
+            _pressed.Clear();
+            _motionTargets.Clear();
+            return StateUnsafe();
+        }
     }
 
-    public bool IsMapped(PhysicalKey key) => _profile.Bindings.Any(binding => binding.Source.Id == key.Id);
+    public bool IsMapped(PhysicalKey key)
+    {
+        lock (_sync) return _profile.Bindings.Any(binding => binding.Source.Id == key.Id);
+    }
+
+    public string? MotionShortcutFor(PhysicalKey key)
+    {
+        lock (_sync)
+        {
+            var target = _profile.Bindings.FirstOrDefault(binding => binding.Source.Id == key.Id)?.Target;
+            return target is not null && MotionShortcuts.All.Contains(target) ? target : null;
+        }
+    }
 
     public ControllerState? Transition(PhysicalKey key, bool down)
     {
-        var changed = down ? _pressed.Add(key.Id) : _pressed.Remove(key.Id);
-        return changed ? State() : null;
+        lock (_sync)
+        {
+            var changed = down ? _pressed.Add(key.Id) : _pressed.Remove(key.Id);
+            return changed ? StateUnsafe() : null;
+        }
     }
 
     public ControllerState Reset()
     {
-        _pressed.Clear();
-        return State();
+        lock (_sync)
+        {
+            _pressed.Clear();
+            _motionTargets.Clear();
+            return StateUnsafe();
+        }
+    }
+
+    public ControllerState SetMotionTargets(string runId, IReadOnlyList<string>? targets)
+    {
+        lock (_sync)
+        {
+            if (targets is null) _motionTargets.Remove(runId);
+            else _motionTargets[runId] = targets;
+            return StateUnsafe();
+        }
     }
 
     public ControllerState State()
     {
+        lock (_sync) return StateUnsafe();
+    }
+
+    private ControllerState StateUnsafe()
+    {
         var active = _profile.Bindings
-            .Where(binding => _pressed.Contains(binding.Source.Id))
+            .Where(binding => _pressed.Contains(binding.Source.Id) && !MotionShortcuts.All.Contains(binding.Target))
             .Select(binding => binding.Target)
             .ToHashSet(StringComparer.Ordinal);
+        foreach (var targets in _motionTargets.Values)
+            active.UnionWith(targets);
 
         var buttons = Protocol.DigitalTargets.ToDictionary(target => target, active.Contains);
         if (buttons["dpad-left"] && buttons["dpad-right"])

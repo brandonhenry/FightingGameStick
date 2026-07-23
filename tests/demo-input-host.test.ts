@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DemoInputHost, type DemoKeyboardInput } from '../src/main/input-host';
 import { makeDefaultProfile } from '../src/shared/defaults';
 import type { HostEvent } from '../src/shared/types';
@@ -14,6 +14,7 @@ const input = (overrides: Partial<DemoKeyboardInput> = {}): DemoKeyboardInput =>
 });
 
 describe('DemoInputHost safety decisions', () => {
+  afterEach(() => vi.useRealTimers());
   it('blocks mapped keys only while enabled and pass-through is off', async () => {
     const host = new DemoInputHost();
     await host.start(makeDefaultProfile(), false);
@@ -58,6 +59,49 @@ describe('DemoInputHost safety decisions', () => {
     expect(host.handleInput(input({ code: 'KeyQ', key: 'q' }))).toBe(true);
     expect(capture).toHaveBeenCalledOnce();
     expect(capture.mock.calls[0]?.[0].target).toBe('a');
+    await host.stop();
+  });
+
+  it('plays and previews a complete QCF plus attack sequence', async () => {
+    vi.useFakeTimers();
+    const host = new DemoInputHost();
+    const profile = makeDefaultProfile();
+    profile.bindings.find((binding) => binding.source.label === 'W')!.target = 'qcf-a';
+    const reports: Array<Extract<HostEvent, { type: 'controller' }>['state']> = [];
+    host.onEvent((event) => event.type === 'controller' && reports.push(event.state));
+    await host.start(profile, false);
+    host.setEnabled(true);
+
+    expect(host.handleInput(input())).toBe(true);
+    expect(reports.at(-1)?.buttons['dpad-down']).toBe(true);
+    await vi.advanceTimersByTimeAsync(35);
+    expect(reports.at(-1)?.buttons['dpad-right']).toBe(true);
+    expect(reports.at(-1)?.buttons['dpad-down']).toBe(true);
+    await vi.advanceTimersByTimeAsync(35);
+    expect(reports.at(-1)?.buttons['dpad-right']).toBe(true);
+    expect(reports.at(-1)?.buttons.a).toBe(true);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(reports.at(-1)?.buttons['dpad-right']).toBe(false);
+    expect(reports.at(-1)?.buttons.a).toBe(false);
+    await host.stop();
+  });
+
+  it('cancels an in-flight motion and releases every output when paused', async () => {
+    vi.useFakeTimers();
+    const host = new DemoInputHost();
+    const profile = makeDefaultProfile();
+    profile.bindings.find((binding) => binding.source.label === 'W')!.target = 'qcb-b';
+    const reports: Array<Extract<HostEvent, { type: 'controller' }>['state']> = [];
+    host.onEvent((event) => event.type === 'controller' && reports.push(event.state));
+    await host.start(profile, false);
+    host.setEnabled(true);
+    host.handleInput(input());
+    await vi.advanceTimersByTimeAsync(35);
+    host.setEnabled(false);
+
+    expect(Object.values(reports.at(-1)!.buttons).every((pressed) => !pressed)).toBe(true);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(Object.values(reports.at(-1)!.buttons).every((pressed) => !pressed)).toBe(true);
     await host.stop();
   });
 });

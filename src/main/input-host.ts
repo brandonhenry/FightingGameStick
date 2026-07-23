@@ -3,14 +3,20 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { app } from 'electron';
-import { MappingEngine } from '../shared/mapping-engine';
+import { MappingEngine, physicalKeyId } from '../shared/mapping-engine';
+import {
+  MOTION_ATTACK_MS,
+  MOTION_STEP_MS,
+  motionShortcutFrames,
+} from '../shared/motion-shortcuts';
 import { hostEventSchema } from '../shared/schemas';
 import {
   PROTOCOL_VERSION,
-  type ControllerTarget,
+  type BindingTarget,
   type HostCommand,
   type HostEvent,
   type MappingProfile,
+  type MotionShortcutTarget,
   type PhysicalKey,
 } from '../shared/types';
 
@@ -31,7 +37,7 @@ export abstract class InputHost {
   abstract setProfile(profile: MappingProfile): void;
   abstract setEnabled(value: boolean): void;
   abstract setPassthrough(value: boolean): void;
-  abstract capture(target: ControllerTarget): void;
+  abstract capture(target: BindingTarget): void;
   abstract cancelCapture(): void;
   abstract reset(): void;
   abstract ping(sentAt: number): void;
@@ -112,7 +118,7 @@ export class WindowsInputHost extends InputHost {
     this.send({ type: 'passthrough', value });
   }
 
-  capture(target: ControllerTarget): void {
+  capture(target: BindingTarget): void {
     this.send({ type: 'capture', target });
   }
 
@@ -174,7 +180,8 @@ export class DemoInputHost extends InputHost {
   private engine: MappingEngine | null = null;
   private enabled = false;
   private passthrough = false;
-  private captureTarget: ControllerTarget | null = null;
+  private captureTarget: BindingTarget | null = null;
+  private readonly motionRuns = new Map<string, AbortController>();
 
   async start(profile: MappingProfile, passthrough: boolean): Promise<void> {
     this.engine = new MappingEngine(profile);
@@ -187,11 +194,13 @@ export class DemoInputHost extends InputHost {
 
   async stop(): Promise<void> {
     this.enabled = false;
+    this.cancelMotionRuns();
     this.engine = null;
   }
 
   setProfile(profile: MappingProfile): void {
     if (!this.engine) return;
+    this.cancelMotionRuns();
     this.enabled = false;
     this.emit({ type: 'enabled', value: false, reason: 'Profile changed' });
     this.emit({ type: 'controller', state: this.engine.configure(profile) });
@@ -200,14 +209,17 @@ export class DemoInputHost extends InputHost {
   setEnabled(value: boolean): void {
     this.enabled = value;
     this.emit({ type: 'enabled', value });
-    if (!value && this.engine) this.emit({ type: 'controller', state: this.engine.reset() });
+    if (!value && this.engine) {
+      this.cancelMotionRuns();
+      this.emit({ type: 'controller', state: this.engine.reset() });
+    }
   }
 
   setPassthrough(value: boolean): void {
     this.passthrough = value;
   }
 
-  capture(target: ControllerTarget): void {
+  capture(target: BindingTarget): void {
     this.captureTarget = target;
   }
 
@@ -216,6 +228,7 @@ export class DemoInputHost extends InputHost {
   }
 
   reset(): void {
+    this.cancelMotionRuns();
     if (this.engine) this.emit({ type: 'controller', state: this.engine.reset() });
   }
 
@@ -230,6 +243,7 @@ export class DemoInputHost extends InputHost {
 
     if (down && input.control && input.alt && input.code === 'F12') {
       this.enabled = false;
+      this.cancelMotionRuns();
       this.emit({ type: 'enabled', value: false, reason: 'Emergency shortcut' });
       this.emit({ type: 'controller', state: this.engine.reset() });
       return true;
@@ -244,11 +258,50 @@ export class DemoInputHost extends InputHost {
 
     this.emit({ type: 'key', key, down, timestamp: Date.now() });
     if (this.enabled) {
+      const shortcut = down ? this.engine.motionShortcutFor(key) : null;
       const state = this.engine.transition(key, down);
-      if (state) this.emit({ type: 'controller', state });
+      if (state && shortcut) void this.playMotion(physicalKeyId(key), shortcut);
+      else if (state) this.emit({ type: 'controller', state });
     }
     return this.enabled && !this.passthrough && this.engine.isMapped(key);
   }
+
+  private async playMotion(runId: string, shortcut: MotionShortcutTarget): Promise<void> {
+    const engine = this.engine;
+    if (!engine) return;
+    this.motionRuns.get(runId)?.abort();
+    const controller = new AbortController();
+    this.motionRuns.set(runId, controller);
+    try {
+      const frames = motionShortcutFrames(shortcut);
+      for (let index = 0; index < frames.length; index += 1) {
+        if (!this.enabled || controller.signal.aborted || this.engine !== engine) return;
+        this.emit({ type: 'controller', state: engine.setMotionTargets(runId, frames[index]!) });
+        await abortableDelay(index === frames.length - 1 ? MOTION_ATTACK_MS : MOTION_STEP_MS, controller.signal);
+      }
+      if (this.enabled && !controller.signal.aborted && this.engine === engine) {
+        this.emit({ type: 'controller', state: engine.setMotionTargets(runId, null) });
+      }
+    } finally {
+      if (this.motionRuns.get(runId) === controller) this.motionRuns.delete(runId);
+    }
+  }
+
+  private cancelMotionRuns(): void {
+    for (const controller of this.motionRuns.values()) controller.abort();
+    this.motionRuns.clear();
+  }
+}
+
+function abortableDelay(duration: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) return resolve();
+    const timeout = setTimeout(resolve, duration);
+    signal.addEventListener('abort', () => {
+      clearTimeout(timeout);
+      resolve();
+    }, { once: true });
+  });
 }
 
 const codeToScanCode: Record<string, number> = {
