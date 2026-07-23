@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "build:site": "node scripts/build-site.mjs",
     "fetch:driver": "node scripts/fetch-vigembus.mjs",
     "build:host": "dotnet publish native/FightingGameStick.InputHost/FightingGameStick.InputHost.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o resources/input-host/win-x64"
   },

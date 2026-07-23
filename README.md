@@ -4,6 +4,8 @@
 
 # Fighting Game Stick
 
+**Website:** [fightinggamestick.netlify.app](https://fightinggamestick.netlify.app)
+
 **[Download the latest Windows installer](https://github.com/brandonhenry/FightingGameStick/releases/latest)** — open `FightingGameStickSetup.exe`, launch the app, and follow the driver prompt the first time.
 
 The standalone [download page](download.html) provides direct installer and portable-build buttons.

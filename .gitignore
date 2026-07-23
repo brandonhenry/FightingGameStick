@@ -9,3 +9,7 @@ native/**/bin/
 native/**/obj/
 *.log
 .DS_Store
+
+# Netlify build and local state
+.netlify/
+netlify-dist/
