@@ -53,10 +53,11 @@ jobs:
         run: |
           $process = Start-Process `
             -FilePath "resources/driver/ViGEmBus_1.22.0_x64_x86_arm64.exe" `
-            -ArgumentList "/quiet", "/norestart" `
+            -ArgumentList "/qn" `
             -Wait `
             -PassThru
-          if ($process.ExitCode -notin @(0, 3010)) {
+          Write-Host "ViGEmBus installer exit code: $($process.ExitCode)"
+          if ($process.ExitCode -notin @(0, 1641, 3010)) {
             throw "ViGEmBus installer exited with code $($process.ExitCode)"
           }
 
