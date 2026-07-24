@@ -6,6 +6,7 @@ import {
   type ControllerTarget,
   type DigitalButtonTarget,
 } from './types';
+import { controllerChordLabel, isControllerChordTarget } from './controller-chords';
 import { isMotionShortcutTarget, motionShortcutLabel } from './motion-shortcuts';
 
 export const targetLabels: Record<ControllerTarget, string> = {
@@ -58,10 +59,12 @@ export const targetShortLabels: Record<ControllerTarget, string> = {
 };
 
 export function bindingTargetLabel(target: BindingTarget): string {
+  if (isControllerChordTarget(target)) return controllerChordLabel(target);
   return isMotionShortcutTarget(target) ? motionShortcutLabel(target) : targetLabels[target];
 }
 
 export function bindingTargetShortLabel(target: BindingTarget): string {
+  if (isControllerChordTarget(target)) return controllerChordLabel(target);
   return isMotionShortcutTarget(target) ? motionShortcutLabel(target) : targetShortLabels[target];
 }
 

@@ -90,6 +90,26 @@ describe('DemoInputHost safety decisions', () => {
     await host.stop();
   });
 
+  it('outputs an ordinary multi-button chord for the full keyboard hold', async () => {
+    const host = new DemoInputHost();
+    const profile = makeDefaultProfile();
+    profile.bindings.find((binding) => binding.source.label === 'W')!.target = 'chord-a+x+y';
+    const reports: Array<Extract<HostEvent, { type: 'controller' }>['state']> = [];
+    host.onEvent((event) => event.type === 'controller' && reports.push(event.state));
+    await host.start(profile, false);
+    host.setEnabled(true);
+
+    expect(host.handleInput(input())).toBe(true);
+    expect(reports.at(-1)?.buttons.a).toBe(true);
+    expect(reports.at(-1)?.buttons.x).toBe(true);
+    expect(reports.at(-1)?.buttons.y).toBe(true);
+    host.handleInput(input({ type: 'keyUp' }));
+    expect(reports.at(-1)?.buttons.a).toBe(false);
+    expect(reports.at(-1)?.buttons.x).toBe(false);
+    expect(reports.at(-1)?.buttons.y).toBe(false);
+    await host.stop();
+  });
+
   it('cancels an in-flight motion and releases every output when paused', async () => {
     vi.useFakeTimers();
     const host = new DemoInputHost();

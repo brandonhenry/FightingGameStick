@@ -23,6 +23,19 @@ describe('runtime contracts', () => {
     expect(mappingProfileSchema.safeParse(malformed).success).toBe(false);
   });
 
+  it('accepts canonical controller chords and rejects malformed combinations', () => {
+    const profile = makeDefaultProfile();
+    profile.bindings[0]!.target = 'chord-a+x+y';
+    expect(mappingProfileSchema.safeParse(profile).success).toBe(true);
+    const malformed = structuredClone(profile) as { bindings: Array<{ target: string }> };
+    malformed.bindings[0]!.target = 'chord-a';
+    expect(mappingProfileSchema.safeParse(malformed).success).toBe(false);
+    malformed.bindings[0]!.target = 'chord-x+a';
+    expect(mappingProfileSchema.safeParse(malformed).success).toBe(false);
+    malformed.bindings[0]!.target = 'chord-a+a';
+    expect(mappingProfileSchema.safeParse(malformed).success).toBe(false);
+  });
+
   it('rejects malformed host messages', () => {
     expect(hostEventSchema.safeParse({ type: 'controller', state: { buttons: {} } }).success).toBe(false);
     expect(hostEventSchema.safeParse({ type: 'key', key: { scanCode: -1 }, down: true }).success).toBe(false);
@@ -31,6 +44,6 @@ describe('runtime contracts', () => {
   it('carries and checks the protocol version', () => {
     const ready = { type: 'ready', protocolVersion: PROTOCOL_VERSION, playerIndex: null } as const;
     const parsed = hostEventSchema.parse(ready);
-    expect(parsed.type === 'ready' && parsed.protocolVersion).toBe(3);
+    expect(parsed.type === 'ready' && parsed.protocolVersion).toBe(4);
   });
 });

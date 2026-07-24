@@ -272,7 +272,10 @@ internal sealed class HostRuntime : IAsyncDisposable
         if (profile.Bindings.Count > 256) throw new InvalidDataException("Profile has too many bindings.");
         var duplicateSource = profile.Bindings.GroupBy(binding => binding.Source.Id).FirstOrDefault(group => group.Count() > 1);
         if (duplicateSource is not null) throw new InvalidDataException($"Duplicate source key {duplicateSource.Key}.");
-        if (profile.Bindings.Any(binding => !ControllerTargets.All.Contains(binding.Target) && !MotionShortcuts.IsValid(binding.Target)))
+        if (profile.Bindings.Any(binding =>
+                !ControllerTargets.All.Contains(binding.Target) &&
+                !ControllerChords.IsValid(binding.Target) &&
+                !MotionShortcuts.IsValid(binding.Target)))
             throw new InvalidDataException("Profile contains an unknown controller target.");
     }
 
@@ -311,6 +314,29 @@ internal sealed class HostRuntime : IAsyncDisposable
             await Task.Delay(50);
         }
         return null;
+    }
+}
+
+internal static class ControllerChords
+{
+    private const string Prefix = "chord-";
+    private static readonly string[] Buttons = ["a", "b", "x", "y", "lb", "rb", "lt", "rt"];
+
+    public static bool IsValid(string target)
+    {
+        if (!target.StartsWith(Prefix, StringComparison.Ordinal)) return false;
+        var buttons = target[Prefix.Length..].Split('+', StringSplitOptions.None);
+        if (buttons.Length is < 2 or > 8 || buttons.Distinct(StringComparer.Ordinal).Count() != buttons.Length)
+            return false;
+        var indexes = buttons.Select(button => Array.IndexOf(Buttons, button)).ToArray();
+        return indexes.All(index => index >= 0) &&
+               indexes.Zip(indexes.Skip(1), (left, right) => left < right).All(valid => valid);
+    }
+
+    public static IReadOnlyList<string> Targets(string target)
+    {
+        if (!IsValid(target)) throw new InvalidDataException("Unknown controller chord.");
+        return target[Prefix.Length..].Split('+');
     }
 }
 

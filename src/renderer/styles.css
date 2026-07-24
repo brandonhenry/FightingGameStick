@@ -514,6 +514,191 @@ kbd {
   padding: 0 8px 12px;
 }
 
+.controller-chord-builder {
+  flex: none;
+  margin: 0 6px 10px;
+  padding: 10px;
+  border-radius: 14px;
+  background:
+    linear-gradient(145deg, rgba(85, 230, 193, 0.055), transparent 58%),
+    #0c1218;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 8px 20px rgba(0, 0, 0, 0.16);
+}
+
+.controller-chord-builder > header {
+  display: flex;
+  min-height: 34px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.controller-chord-builder h3 {
+  margin-top: 2px;
+  color: #dbe4e7;
+  font-size: 11px;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.controller-chord-builder output {
+  max-width: 126px;
+  overflow: hidden;
+  color: var(--mint);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.4;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.controller-chord-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(40px, 1fr));
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.controller-chord-buttons button {
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.065);
+  color: #82909a;
+  font-size: 9px;
+  font-weight: 800;
+  transition-property: background-color, box-shadow, color, scale;
+  transition-duration: 130ms;
+}
+
+.controller-chord-buttons button:hover {
+  background: rgba(255, 255, 255, 0.075);
+  color: #dbe4e7;
+}
+
+.controller-chord-buttons button.is-selected {
+  background: rgba(85, 230, 193, 0.12);
+  box-shadow:
+    0 0 0 1px rgba(85, 230, 193, 0.38),
+    0 5px 14px rgba(0, 0, 0, 0.16);
+  color: var(--mint);
+}
+
+.controller-chord-bind {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 7px;
+  border-radius: 8px;
+  background: rgba(85, 230, 193, 0.1);
+  box-shadow: 0 0 0 1px rgba(85, 230, 193, 0.22);
+  color: var(--mint);
+  font-size: 9px;
+  font-weight: 800;
+  transition-property: background-color, box-shadow, opacity, scale;
+  transition-duration: 130ms;
+}
+
+.controller-chord-bind:hover:not(:disabled) {
+  background: rgba(85, 230, 193, 0.16);
+  box-shadow:
+    0 0 0 1px rgba(85, 230, 193, 0.4),
+    0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+.controller-chord-buttons button:active,
+.controller-chord-bind:active:not(:disabled),
+.controller-chord-assignment button:active {
+  scale: 0.96;
+}
+
+.controller-chord-bind:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.controller-chord-bind svg,
+.controller-chord-assignment svg {
+  width: 12px;
+  height: 12px;
+}
+
+.controller-chord-assignments {
+  display: grid;
+  max-height: 90px;
+  gap: 5px;
+  margin-top: 7px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.controller-chord-assignments > p {
+  min-height: 40px;
+  padding: 13px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--faint);
+  font-size: 8px;
+  text-align: center;
+}
+
+.controller-chord-assignment {
+  display: grid;
+  min-height: 40px;
+  grid-template-columns: minmax(38px, auto) minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 7px;
+  padding-left: 5px;
+  border-radius: 8px;
+  background: rgba(85, 230, 193, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(85, 230, 193, 0.12);
+}
+
+.controller-chord-assignment kbd {
+  overflow: hidden;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #e7edef;
+  font-family: inherit;
+  font-size: 8px;
+  font-weight: 800;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.controller-chord-assignment span {
+  overflow: hidden;
+  color: var(--mint);
+  font-size: 8px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.controller-chord-assignment button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 8px;
+  color: #71808b;
+  transition-property: color, scale;
+  transition-duration: 120ms;
+}
+
+.controller-chord-assignment button:hover {
+  color: var(--red);
+}
+
 .binding-count {
   display: inline-flex;
   min-width: 30px;

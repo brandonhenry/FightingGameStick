@@ -41,6 +41,34 @@ describe('MappingEngine', () => {
     expect(engine.transition(left, false)?.buttons['dpad-left']).toBe(false);
   });
 
+  it('holds every button in a controller chord until the source key is released', () => {
+    const shortcut = key(16, 'Q');
+    const engine = new MappingEngine(profile([binding(shortcut, 'chord-a+x+y')]));
+    const pressed = engine.transition(shortcut, true)!;
+    expect(pressed.buttons.a).toBe(true);
+    expect(pressed.buttons.x).toBe(true);
+    expect(pressed.buttons.y).toBe(true);
+    expect(pressed.buttons.b).toBe(false);
+
+    const released = engine.transition(shortcut, false)!;
+    expect(released.buttons.a).toBe(false);
+    expect(released.buttons.x).toBe(false);
+    expect(released.buttons.y).toBe(false);
+  });
+
+  it('keeps a shared chord output held when another mapped key is still pressed', () => {
+    const chord = key(16, 'Q');
+    const normal = key(30, 'A');
+    const engine = new MappingEngine(profile([
+      binding(chord, 'chord-a+b'),
+      binding(normal, 'a'),
+    ]));
+    engine.transition(chord, true);
+    engine.transition(normal, true);
+    expect(engine.transition(chord, false)?.buttons.a).toBe(true);
+    expect(engine.transition(normal, false)?.buttons.a).toBe(false);
+  });
+
   it('cleans opposing directions to neutral', () => {
     const left = key(30, 'Left');
     const right = key(32, 'Right');

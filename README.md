@@ -21,6 +21,7 @@ The honest compatibility promise is **XInput games that do not deliberately bloc
 - Mapped-key blocking by default, with an optional keyboard pass-through switch.
 - An unbindable `Ctrl + Alt + F12` emergency disable and matching tray action.
 - Neutral SOCD cleaning, circular digital-stick diagonals, digital 0/100% triggers, repeat filtering, and shared-target reference behavior.
+- One-key simultaneous controller chords such as A+B, A+X, or A+X+Y, held for exactly as long as the mapped keyboard key.
 - One-key QCF (`↓ ↘ →`) and QCB (`↓ ↙ ←`) shortcuts with configurable simultaneous attack chords such as A+B, A+B+Y, or B+X, with a live step-by-step preview.
 - Manual profile create, rename, duplicate, switch, delete, and atomic versioned persistence.
 - Live keyboard rollover testing, gamepad/fight-stick views, driver/helper/player-slot status, logs, and repair actions.
@@ -31,6 +32,10 @@ The honest compatibility promise is **XInput games that do not deliberately bloc
 Open **Motion shortcuts**, choose QCF or QCB, toggle every attack button that should land together, and select **Bind chord to a key**. A shortcut sends down, diagonal, and forward/back + the complete simultaneous attack chord as a short timed sequence through the same virtual controller. Normal held inputs remain active, auto-repeat does not restart the shortcut, and pausing or changing profiles immediately cancels the sequence and releases its outputs.
 
 Motion shortcuts may be considered macros by a game, league, or tournament. Check the rules for where you play before using them competitively.
+
+## Multi-button bindings
+
+In the left **Bindings** panel, choose two or more controller buttons under **Multi-button output**, then select **Bind** and press a keyboard key. The chosen controller buttons are pressed together when that keyboard key goes down and remain held until it is released. These bindings are saved with the active profile and light both controller previews like ordinary inputs.
 
 ## Architecture
 

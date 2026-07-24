@@ -71,10 +71,15 @@ internal sealed class MappingEngine
 
     private ControllerState StateUnsafe()
     {
-        var active = _profile.Bindings
-            .Where(binding => _pressed.Contains(binding.Source.Id) && !MotionShortcuts.IsValid(binding.Target))
-            .Select(binding => binding.Target)
-            .ToHashSet(StringComparer.Ordinal);
+        var active = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var binding in _profile.Bindings.Where(binding =>
+                     _pressed.Contains(binding.Source.Id) && !MotionShortcuts.IsValid(binding.Target)))
+        {
+            if (ControllerChords.IsValid(binding.Target))
+                active.UnionWith(ControllerChords.Targets(binding.Target));
+            else
+                active.Add(binding.Target);
+        }
         foreach (var targets in _motionTargets.Values)
             active.UnionWith(targets);
 

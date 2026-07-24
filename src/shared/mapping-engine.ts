@@ -1,4 +1,5 @@
 import { createNeutralControllerState } from './controller';
+import { controllerChordTargets, isControllerChordTarget } from './controller-chords';
 import { isMotionShortcutTarget } from './motion-shortcuts';
 import type {
   ControllerState,
@@ -68,7 +69,10 @@ export class MappingEngine {
     const active = new Set<ControllerTarget>();
 
     for (const binding of this.profile.bindings) {
-      if (this.pressed.has(physicalKeyId(binding.source)) && !isMotionShortcutTarget(binding.target)) {
+      if (!this.pressed.has(physicalKeyId(binding.source)) || isMotionShortcutTarget(binding.target)) continue;
+      if (isControllerChordTarget(binding.target)) {
+        for (const target of controllerChordTargets(binding.target)) active.add(target);
+      } else {
         active.add(binding.target);
       }
     }

@@ -25,6 +25,13 @@ import {
   targetShortLabels,
 } from '../shared/controller';
 import {
+  controllerChordButtons,
+  controllerChordLabel,
+  createControllerChordTarget,
+  isControllerChordTarget,
+  type ControllerChordButton,
+} from '../shared/controller-chords';
+import {
   createMotionShortcutTarget,
   isMotionShortcutTarget,
   motionAttacks,
@@ -37,6 +44,7 @@ import { getFightStickLeverPose } from './fight-stick-pose';
 import type {
   AppSnapshot,
   BindingTarget,
+  ControllerChordTarget,
   ControllerState,
   ControllerTarget,
   DiagnosticResult,
@@ -251,6 +259,7 @@ export function App() {
               </div>
               <span className="binding-count">{activeProfile.bindings.length}</span>
             </div>
+            <ControllerChordBuilder profile={activeProfile} onTarget={bind} run={run} />
             <div className="mapping-list">
               {allTargets.map((target) => {
                 const bindings = activeProfile.bindings.filter((binding) => binding.target === target);
@@ -516,6 +525,82 @@ function FightStickVisual({ state, onTarget }: { state: ControllerState; onTarge
       </g>
       <text className="case-label" x="530" y="286">FGS / 01</text>
     </svg>
+  );
+}
+
+function ControllerChordBuilder({ profile, onTarget, run }: {
+  profile: MappingProfile;
+  onTarget: (target: BindingTarget) => void;
+  run: (action: () => Promise<unknown>, success?: string) => Promise<void>;
+}) {
+  const [selected, setSelected] = useState<ControllerChordButton[]>(['a', 'b']);
+  const assignments = profile.bindings.filter((binding) => isControllerChordTarget(binding.target));
+
+  const toggleButton = (button: ControllerChordButton) => {
+    setSelected((current) => current.includes(button)
+      ? current.filter((item) => item !== button)
+      : controllerChordButtons.filter((item) => item === button || current.includes(item)));
+  };
+
+  const summary = selected.length
+    ? selected.map((button) => button.toUpperCase()).join(' + ')
+    : 'Select buttons';
+
+  return (
+    <section className="controller-chord-builder" aria-labelledby="controller-chord-title">
+      <header>
+        <div>
+          <span className="eyebrow">One keyboard press</span>
+          <h3 id="controller-chord-title">Multi-button output</h3>
+        </div>
+        <output>{summary}</output>
+      </header>
+      <div className="controller-chord-buttons" role="group" aria-label="Controller chord buttons">
+        {controllerChordButtons.map((button) => {
+          const isSelected = selected.includes(button);
+          return (
+            <button
+              className={isSelected ? 'is-selected' : ''}
+              key={button}
+              aria-label={`Toggle ${button.toUpperCase()} for controller chord`}
+              aria-pressed={isSelected}
+              onClick={() => toggleButton(button)}
+            >
+              {button.toUpperCase()}
+            </button>
+          );
+        })}
+      </div>
+      <button
+        className="controller-chord-bind"
+        disabled={selected.length < 2}
+        aria-label={selected.length >= 2 ? `Bind ${summary}` : 'Select at least two controller buttons'}
+        onClick={() => onTarget(createControllerChordTarget(selected))}
+      >
+        <Plus />
+        {selected.length >= 2 ? `Bind ${summary}` : 'Choose at least two buttons'}
+      </button>
+      <div className="controller-chord-assignments" aria-label="Assigned multi-button bindings">
+        {assignments.length ? assignments.map((binding) => {
+          const target = binding.target as ControllerChordTarget;
+          return (
+            <div className="controller-chord-assignment" key={binding.id}>
+              <kbd>{binding.source.label}</kbd>
+              <span>{controllerChordLabel(target)}</span>
+              <button
+                aria-label={`Remove ${binding.source.label} from ${controllerChordLabel(target)}`}
+                title={`Remove ${binding.source.label}`}
+                onClick={() => void run(() => window.fightingGameStick.removeBinding(binding.id))}
+              >
+                <X />
+              </button>
+            </div>
+          );
+        }) : (
+          <p>No multi-button bindings yet.</p>
+        )}
+      </div>
+    </section>
   );
 }
 
