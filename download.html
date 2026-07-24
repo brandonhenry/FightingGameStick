@@ -146,7 +146,7 @@
       main {
         display: grid;
         min-height: calc(100vh - 148px);
-        align-items: center;
+        align-content: center;
         padding: 64px 0 92px;
       }
 
@@ -263,6 +263,27 @@
         font-variant-numeric: tabular-nums;
       }
 
+      .location-link {
+        display: inline-flex;
+        min-height: 40px;
+        align-items: center;
+        margin-top: 8px;
+        color: var(--mint);
+        font-size: 0.76rem;
+        font-weight: 750;
+        text-underline-offset: 4px;
+        transition-property: color, transform;
+        transition-duration: 140ms;
+      }
+
+      .location-link:hover {
+        color: var(--mint-strong);
+      }
+
+      .location-link:active {
+        transform: scale(0.96);
+      }
+
       .download-card {
         padding: 34px;
         border-radius: 28px;
@@ -355,6 +376,140 @@
         color: var(--yellow);
       }
 
+      .install-location {
+        display: grid;
+        grid-template-columns: minmax(250px, 0.7fr) minmax(0, 1.3fr);
+        gap: clamp(28px, 6vw, 76px);
+        margin-top: 64px;
+        padding: clamp(26px, 4vw, 42px);
+        scroll-margin-top: 24px;
+        border-radius: 28px;
+        background:
+          linear-gradient(145deg, rgba(122, 227, 193, 0.035), transparent 42%),
+          rgba(13, 19, 26, 0.88);
+        box-shadow:
+          0 24px 70px rgba(0, 0, 0, 0.28),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.075),
+          inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      }
+
+      .install-location h2 {
+        margin: 7px 0 12px;
+        font-size: clamp(1.65rem, 3vw, 2.4rem);
+        letter-spacing: -0.045em;
+        line-height: 1.05;
+        text-wrap: balance;
+      }
+
+      .install-location-copy > p:last-child {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.65;
+        text-wrap: pretty;
+      }
+
+      .path-box {
+        display: grid;
+        gap: 7px;
+        margin-bottom: 18px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: #090e13;
+        box-shadow: inset 0 0 0 1px rgba(122, 227, 193, 0.14);
+      }
+
+      .path-box span {
+        color: var(--faint, #71808b);
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .path-box code {
+        overflow-wrap: anywhere;
+        color: var(--mint-strong);
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: clamp(0.72rem, 1.3vw, 0.87rem);
+        line-height: 1.5;
+      }
+
+      .shortcut-steps {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: shortcut-steps;
+      }
+
+      .shortcut-steps li {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 14px;
+        min-width: 0;
+        min-height: 0;
+        align-items: start;
+        padding: 16px;
+        color: #bac5cb;
+        font-size: 0.78rem;
+        line-height: 1.55;
+        counter-increment: shortcut-steps;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.035);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+      }
+
+      .shortcut-steps li::before {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        margin: 0;
+        color: var(--mint);
+        content: counter(shortcut-steps, decimal-leading-zero);
+        font-size: 0.62rem;
+        font-weight: 850;
+        border-radius: 9px;
+        background: rgba(122, 227, 193, 0.08);
+        box-shadow: inset 0 0 0 1px rgba(122, 227, 193, 0.16);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .shortcut-steps strong {
+        overflow-wrap: anywhere;
+      }
+
+      .shortcut-step-copy {
+        min-width: 0;
+      }
+
+      .shortcut-steps kbd {
+        padding: 2px 5px;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+        color: var(--text);
+        font-family: inherit;
+        font-size: 0.7rem;
+        font-weight: 800;
+      }
+
+      .shortcut-note {
+        grid-column: 1 / -1;
+        margin: 14px 2px 0;
+        color: #788791;
+        font-size: 0.72rem;
+        line-height: 1.6;
+        text-wrap: pretty;
+      }
+
+      .shortcut-note strong {
+        color: #b4c0c7;
+      }
+
       footer {
         padding: 0 0 30px;
         color: #61707b;
@@ -378,6 +533,10 @@
 
         .download-card {
           max-width: 560px;
+        }
+
+        .install-location {
+          grid-template-columns: 1fr;
         }
       }
 
@@ -408,6 +567,13 @@
           padding: 26px;
           border-radius: 24px;
         }
+
+        .install-location {
+          margin-top: 38px;
+          padding: 24px;
+          border-radius: 24px;
+        }
+
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -469,6 +635,7 @@
           <p class="requirements" id="download-requirements">
             Windows 10 or 11, 64-bit · Installer size 166 MB · Free and open source
           </p>
+          <a class="location-link" href="#find-app">Where is it installed? Create a desktop shortcut →</a>
         </div>
 
         <aside class="download-card" aria-label="First-run instructions">
@@ -489,6 +656,26 @@
             <span>The app installer is not yet Authenticode-signed, so Windows SmartScreen may ask you to choose “More info” and “Run anyway.”</span>
           </div>
         </aside>
+      </section>
+
+      <section class="install-location" id="find-app" aria-labelledby="find-app-heading">
+        <div class="install-location-copy">
+          <p class="eyebrow">Installed but can’t find it?</p>
+          <h2 id="find-app-heading">Create a desktop shortcut.</h2>
+          <p>The installer places Fighting Game Stick in your Windows user folder. You do not need administrator access to open it.</p>
+        </div>
+        <div>
+          <div class="path-box">
+            <span>Installed application</span>
+            <code>%LOCALAPPDATA%\FightingGameStick\FightingGameStick.exe</code>
+          </div>
+          <ol class="shortcut-steps">
+            <li><span class="shortcut-step-copy">Press <kbd>Win</kbd> + <kbd>R</kbd>, paste <strong>%LOCALAPPDATA%\FightingGameStick</strong>, then press <kbd>Enter</kbd>.</span></li>
+            <li><span class="shortcut-step-copy">Right-click <strong>FightingGameStick.exe</strong>. On Windows 11, choose <strong>Show more options</strong>.</span></li>
+            <li><span class="shortcut-step-copy">Choose <strong>Send to → Desktop (create shortcut)</strong>. You can also choose <strong>Pin to Start</strong>.</span></li>
+          </ol>
+          <p class="shortcut-note"><strong>Use the EXE in the main FightingGameStick folder.</strong> Do not shortcut the copy inside an <code>app-0.3.0</code> folder, because that versioned folder changes when the app updates. If you downloaded the Portable ZIP, the app remains wherever you extracted it.</p>
+        </div>
       </section>
     </main>
 
