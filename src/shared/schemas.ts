@@ -50,6 +50,7 @@ export const profileStoreSchema = z.object({
   activeProfileId: z.string().min(1),
   profiles: z.array(mappingProfileSchema).min(1).max(100),
   passthrough: z.boolean(),
+  mouseEnabled: z.boolean().default(false),
 });
 
 const stickSchema = z.object({ x: z.number().min(-1).max(1), y: z.number().min(-1).max(1) });

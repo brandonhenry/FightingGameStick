@@ -10,14 +10,16 @@ internal sealed class HostRuntime : IAsyncDisposable
     private readonly Channel<HookInput> _input = Channel.CreateUnbounded<HookInput>(new UnboundedChannelOptions
     {
         SingleReader = true,
-        SingleWriter = true
+        SingleWriter = false
     });
     private readonly SemaphoreSlim _outputLock = new(1, 1);
     private readonly SemaphoreSlim _controllerLock = new(1, 1);
     private readonly CancellationTokenSource _shutdown = new();
     private readonly object _motionSync = new();
     private readonly Dictionary<string, CancellationTokenSource> _motionRuns = [];
-    private LowLevelKeyboardHook? _hook;
+    private readonly InputHookState _hookState = new();
+    private LowLevelKeyboardHook? _keyboardHook;
+    private LowLevelMouseHook? _mouseHook;
     private VirtualController? _controller;
     private MappingEngine? _engine;
     private Task? _inputWorker;
@@ -42,13 +44,16 @@ internal sealed class HostRuntime : IAsyncDisposable
                 SetEnabled(root.Deserialize<BooleanCommand>(JsonOptions)!.Value);
                 break;
             case "passthrough":
-                _hook?.SetPassthrough(root.Deserialize<BooleanCommand>(JsonOptions)!.Value);
+                _hookState.SetPassthrough(root.Deserialize<BooleanCommand>(JsonOptions)!.Value);
+                break;
+            case "mouse":
+                _hookState.SetMouseEnabled(root.Deserialize<BooleanCommand>(JsonOptions)!.Value);
                 break;
             case "capture":
-                _hook?.Capture(root.Deserialize<CaptureCommand>(JsonOptions)!.Target);
+                _hookState.Capture(root.Deserialize<CaptureCommand>(JsonOptions)!.Target);
                 break;
             case "cancel-capture":
-                _hook?.CancelCapture();
+                _hookState.CancelCapture();
                 break;
             case "reset":
                 Reset();
@@ -72,9 +77,11 @@ internal sealed class HostRuntime : IAsyncDisposable
     {
         _shutdown.Cancel();
         CancelMotionRuns();
-        _hook?.SetEnabled(false);
+        _hookState.SetEnabled(false);
+        _hookState.CancelCapture();
         try { Reset(); } catch { /* The driver may have disconnected. */ }
-        _hook?.Dispose();
+        _mouseHook?.Dispose();
+        _keyboardHook?.Dispose();
         _input.Writer.TryComplete();
         if (_inputWorker is not null)
         {
@@ -99,9 +106,11 @@ internal sealed class HostRuntime : IAsyncDisposable
             ValidateProfile(command.Profile);
             _engine = new MappingEngine(command.Profile);
             _controller = new VirtualController();
-            _hook = new LowLevelKeyboardHook(_input.Writer);
-            _hook.Configure(command.Profile);
-            _hook.SetPassthrough(command.Passthrough);
+            _hookState.Configure(command.Profile);
+            _hookState.SetPassthrough(command.Passthrough);
+            _hookState.SetMouseEnabled(command.MouseEnabled);
+            _keyboardHook = new LowLevelKeyboardHook(_input.Writer, _hookState);
+            _mouseHook = new LowLevelMouseHook(_input.Writer, _hookState);
             _inputWorker = Task.Run(ProcessInputAsync);
             var playerIndex = await WaitForPlayerIndexAsync();
             await EmitAsync(new
@@ -125,14 +134,14 @@ internal sealed class HostRuntime : IAsyncDisposable
     {
         ValidateProfile(profile);
         SetEnabled(false, "Profile changed");
-        _hook?.Configure(profile);
+        _hookState.Configure(profile);
         if (_engine is not null) PublishState(_engine.Configure(profile));
     }
 
     private void SetEnabled(bool value, string? reason = null)
     {
         _enabled = value;
-        _hook?.SetEnabled(value);
+        _hookState.SetEnabled(value);
         if (!value)
         {
             CancelMotionRuns();
@@ -179,7 +188,7 @@ internal sealed class HostRuntime : IAsyncDisposable
                     catch (Exception error)
                     {
                         _enabled = false;
-                        _hook?.SetEnabled(false);
+                        _hookState.SetEnabled(false);
                         _engine.Reset();
                         await EmitFaultAsync("DRIVER_DISCONNECTED", error.Message, true);
                     }
@@ -239,7 +248,7 @@ internal sealed class HostRuntime : IAsyncDisposable
         catch (Exception error)
         {
             _enabled = false;
-            _hook?.SetEnabled(false);
+            _hookState.SetEnabled(false);
             CancelMotionRuns();
             if (_engine is not null) await PublishStateAsync(_engine.Reset());
             await EmitFaultAsync("DRIVER_DISCONNECTED", error.Message, true);
@@ -348,6 +357,7 @@ internal static class MotionShortcuts
 
     public static bool IsValid(string target)
     {
+        if (target is "qcf" or "qcb") return true;
         var parts = target.Split('-', StringSplitOptions.None);
         if (parts.Length != 2 || (parts[0] != "qcf" && parts[0] != "qcb")) return false;
         var attacks = parts[1].Split('+', StringSplitOptions.None);
@@ -360,8 +370,8 @@ internal static class MotionShortcuts
     {
         if (!IsValid(target)) throw new InvalidDataException("Unknown motion shortcut.");
         var separator = target.IndexOf('-');
-        var motion = target[..separator];
-        var attacks = target[(separator + 1)..].Split('+');
+        var motion = separator < 0 ? target : target[..separator];
+        string[] attacks = separator < 0 ? [] : target[(separator + 1)..].Split('+');
         var horizontal = motion == "qcf" ? "dpad-right" : "dpad-left";
         return
         [

@@ -5,6 +5,7 @@ import {
   Download,
   Gamepad2,
   Keyboard,
+  MousePointer2,
   Pencil,
   Plus,
   Power,
@@ -148,7 +149,7 @@ export function App() {
           </div>
           <div>
             <strong>Fighting Game Stick</strong>
-            <span>Keyboard → XInput</span>
+            <span>Keyboard + mouse → XInput</span>
           </div>
         </div>
 
@@ -223,9 +224,12 @@ export function App() {
             <div className="section-heading">
               <div>
                 <span className="eyebrow">Input monitor</span>
-                <h2>Keyboard</h2>
+                <h2>Keyboard + mouse</h2>
               </div>
-              <Keyboard aria-hidden="true" />
+              <span className="input-icons" aria-hidden="true">
+                <Keyboard />
+                <MousePointer2 />
+              </span>
             </div>
             <div className="pressed-keys" aria-live="polite">
               {snapshot.pressedKeys.length ? (
@@ -238,16 +242,16 @@ export function App() {
               ) : (
                 <div className="empty-input">
                   <span className="empty-keycap">···</span>
-                  <p>Press any key to test it.</p>
+                  <p>Press a key or enabled mouse button.</p>
                 </div>
               )}
             </div>
             <div className="rollover-meter">
-              <span>Simultaneous keys</span>
+              <span>Simultaneous inputs</span>
               <strong>{snapshot.pressedKeys.length}</strong>
             </div>
             <p className="helper-copy">
-              Hold your most demanding combo here. Missing keys indicate hardware ghosting, not a software delay.
+              Hold your most demanding combo here. Missing keyboard keys indicate hardware ghosting, not a software delay.
             </p>
           </section>
 
@@ -300,21 +304,36 @@ export function App() {
             <div>
               <span className="eyebrow">One virtual controller · two views</span>
               <h1>See every input before the round starts.</h1>
-              <p>Click any control, then press a key to bind it. Both views always represent the same XInput device.</p>
+              <p>Click any control, then press a keyboard key or enabled mouse button. Both views represent the same XInput device.</p>
             </div>
-            <label className="passthrough-control">
-              <span>
-                <strong>Keyboard pass-through</strong>
-                <small>{runtime.passthrough ? 'Game sees both inputs' : 'Game sees controller only'}</small>
-              </span>
-              <input
-                type="checkbox"
-                aria-label="Keyboard pass-through"
-                checked={runtime.passthrough}
-                onChange={(event) => void run(() => window.fightingGameStick.setPassthrough(event.target.checked))}
-              />
-              <span className="switch-track" aria-hidden="true"><span /></span>
-            </label>
+            <div className="input-toggles">
+              <label className="input-toggle">
+                <span>
+                  <strong>Mouse support</strong>
+                  <small>{runtime.mouseEnabled ? 'Mouse buttons can be mapped' : 'Off by default for safety'}</small>
+                </span>
+                <input
+                  type="checkbox"
+                  aria-label="Mouse support"
+                  checked={runtime.mouseEnabled}
+                  onChange={(event) => void run(() => window.fightingGameStick.setMouseEnabled(event.target.checked))}
+                />
+                <span className="switch-track" aria-hidden="true"><span /></span>
+              </label>
+              <label className="input-toggle">
+                <span>
+                  <strong>Input pass-through</strong>
+                  <small>{runtime.passthrough ? 'Game sees both inputs' : 'Game sees controller only'}</small>
+                </span>
+                <input
+                  type="checkbox"
+                  aria-label="Input pass-through"
+                  checked={runtime.passthrough}
+                  onChange={(event) => void run(() => window.fightingGameStick.setPassthrough(event.target.checked))}
+                />
+                <span className="switch-track" aria-hidden="true"><span /></span>
+              </label>
+            </div>
           </div>
 
           <div className="devices-grid">
@@ -335,9 +354,9 @@ export function App() {
               <span>
                 {runtime.enabled
                   ? runtime.passthrough
-                    ? 'Mapped keys pass through. Ctrl + Alt + F12 instantly pauses output.'
-                    : 'Only mapped keys are blocked. Ctrl + Alt + F12 instantly restores them.'
-                  : 'No keys are blocked and all controller outputs are neutral.'}
+                    ? 'Mapped inputs pass through. Ctrl + Alt + F12 instantly pauses output.'
+                    : 'Mapped keyboard keys and enabled mouse buttons are blocked. Ctrl + Alt + F12 restores them.'
+                  : 'No inputs are blocked and all controller outputs are neutral.'}
               </span>
             </div>
             <span className="sequence">Report {snapshot.controller.sequence}</span>
@@ -550,7 +569,7 @@ function ControllerChordBuilder({ profile, onTarget, run }: {
     <section className="controller-chord-builder" aria-labelledby="controller-chord-title">
       <header>
         <div>
-          <span className="eyebrow">One keyboard press</span>
+          <span className="eyebrow">One physical input</span>
           <h3 id="controller-chord-title">Multi-button output</h3>
         </div>
         <output>{summary}</output>
@@ -654,7 +673,7 @@ function MotionShortcutsPanel({ profile, onTarget, run }: {
         <div>
           <span className="eyebrow">One-key commands</span>
           <h2 id="motion-shortcuts-title">Motion shortcuts</h2>
-          <p>Build a motion plus any attack-button chord, then bind the complete command to one key. Check your game or tournament rules before use.</p>
+          <p>Bind QCF or QCB by itself, or add any attack-button chord. Check your game or tournament rules before use.</p>
         </div>
       </header>
       <div className="motion-groups">
@@ -666,11 +685,11 @@ function MotionShortcutsPanel({ profile, onTarget, run }: {
             </header>
             <div className="motion-builder">
               <div className="motion-chord-summary">
-                <span>Attack chord</span>
+                <span>Attack output</span>
                 <output>
                   {selectedAttacks[motion.id].length
                     ? selectedAttacks[motion.id].map((attack) => attack.toUpperCase()).join(' + ')
-                    : 'Select buttons'}
+                    : 'Motion only'}
                 </output>
               </div>
               <div className="motion-chord-buttons" role="group" aria-label={`${motion.id.toUpperCase()} attack chord`}>
@@ -691,14 +710,13 @@ function MotionShortcutsPanel({ profile, onTarget, run }: {
               </div>
               <button
                 className="motion-bind-combo"
-                disabled={selectedAttacks[motion.id].length === 0}
                 aria-label={selectedAttacks[motion.id].length
                   ? `Bind ${motion.id.toUpperCase()} + ${selectedAttacks[motion.id].map((attack) => attack.toUpperCase()).join(' + ')}`
-                  : `Select an attack chord for ${motion.id.toUpperCase()}`}
+                  : `Bind ${motion.id.toUpperCase()}`}
                 onClick={() => onTarget(createMotionShortcutTarget(motion.id, selectedAttacks[motion.id]))}
               >
                 <Plus />
-                Bind chord to a key
+                {selectedAttacks[motion.id].length ? 'Bind command to an input' : 'Bind motion to an input'}
               </button>
             </div>
             <div className="motion-assignments">
@@ -743,9 +761,11 @@ function CaptureOverlay({ target, onCancel }: { target: BindingTarget; onCancel:
       <div className="capture-card" role="dialog" aria-modal="true" aria-labelledby="capture-title">
         <button className="modal-close" onClick={onCancel} aria-label="Cancel binding"><X /></button>
         <div className="capture-rings" aria-hidden="true"><span /><span /><kbd>?</kbd></div>
-        <span className="eyebrow">Listening for a key</span>
+        <span className="eyebrow">Listening for an input</span>
         <h2 id="capture-title">Bind {bindingTargetLabel(target)}</h2>
-        <p>Press the keyboard key you want to use. If it is already bound, it will move here.</p>
+        <p>
+          Press the keyboard key or mouse button you want to use. Mouse support must be on; an occupied input moves here.
+        </p>
         <button className="secondary-button" onClick={onCancel}>Cancel</button>
       </div>
     </div>

@@ -1,8 +1,8 @@
 {
   "name": "fighting-game-stick",
   "productName": "Fighting Game Stick",
-  "version": "0.4.0",
-  "description": "Turn a keyboard into a virtual Xbox controller with a focused fighting-game interface.",
+  "version": "0.5.0",
+  "description": "Turn keyboard and opt-in mouse inputs into a virtual Xbox controller with a focused fighting-game interface.",
   "author": "Fighting Game Stick contributors",
   "main": ".vite/build/main.js",
   "private": true,

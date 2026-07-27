@@ -168,4 +168,17 @@ describe('MappingEngine', () => {
       ['dpad-left', 'b', 'x', 'rt'],
     ]);
   });
+
+  it('generates direction-only quarter circles with no attack button', () => {
+    expect(motionShortcutFrames('qcf')).toEqual([
+      ['dpad-down'],
+      ['dpad-down', 'dpad-right'],
+      ['dpad-right'],
+    ]);
+    expect(motionShortcutFrames('qcb')).toEqual([
+      ['dpad-down'],
+      ['dpad-down', 'dpad-left'],
+      ['dpad-left'],
+    ]);
+  });
 });

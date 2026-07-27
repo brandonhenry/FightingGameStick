@@ -1,23 +1,23 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Channels;
 
 namespace FightingGameStick.InputHost;
 
-internal sealed class LowLevelKeyboardHook : IDisposable
+internal sealed class LowLevelMouseHook : IDisposable
 {
-    private const int WhKeyboardLl = 13;
-    private const int WmKeyDown = 0x0100;
-    private const int WmKeyUp = 0x0101;
-    private const int WmSysKeyDown = 0x0104;
-    private const int WmSysKeyUp = 0x0105;
+    private const int WhMouseLl = 14;
+    private const int WmLeftDown = 0x0201;
+    private const int WmLeftUp = 0x0202;
+    private const int WmRightDown = 0x0204;
+    private const int WmRightUp = 0x0205;
+    private const int WmMiddleDown = 0x0207;
+    private const int WmMiddleUp = 0x0208;
+    private const int WmXButtonDown = 0x020B;
+    private const int WmXButtonUp = 0x020C;
     private const int WmQuit = 0x0012;
-    private const uint LlkhfExtended = 0x01;
-    private const uint LlkhfInjected = 0x10;
-    private const int VkControl = 0x11;
-    private const int VkMenu = 0x12;
-    private const int VkF12 = 0x7B;
+    private const uint LlmhfInjected = 0x01;
+    private const uint LlmhfLowerIlInjected = 0x02;
 
     private readonly ChannelWriter<HookInput> _writer;
     private readonly InputHookState _state;
@@ -27,16 +27,16 @@ internal sealed class LowLevelKeyboardHook : IDisposable
     private nint _hook;
     private uint _threadId;
 
-    public LowLevelKeyboardHook(ChannelWriter<HookInput> writer, InputHookState state)
+    public LowLevelMouseHook(ChannelWriter<HookInput> writer, InputHookState state)
     {
         _writer = writer;
         _state = state;
         _callback = Callback;
-        _thread = new Thread(MessageLoop) { IsBackground = true, Name = "FGS keyboard hook" };
+        _thread = new Thread(MessageLoop) { IsBackground = true, Name = "FGS mouse hook" };
         _thread.SetApartmentState(ApartmentState.STA);
         _thread.Start();
-        if (!_ready.Wait(TimeSpan.FromSeconds(5))) throw new TimeoutException("Keyboard hook thread did not start.");
-        if (_hook == 0) throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not install keyboard hook.");
+        if (!_ready.Wait(TimeSpan.FromSeconds(5))) throw new TimeoutException("Mouse hook thread did not start.");
+        if (_hook == 0) throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not install mouse hook.");
     }
 
     public void Dispose()
@@ -48,32 +48,47 @@ internal sealed class LowLevelKeyboardHook : IDisposable
 
     private nint Callback(int code, nint message, nint data)
     {
-        if (code < 0) return CallNextHookEx(_hook, code, message, data);
-        var native = Marshal.PtrToStructure<KbdLlHookStruct>(data);
-        if ((native.Flags & LlkhfInjected) != 0) return CallNextHookEx(_hook, code, message, data);
+        if (code < 0 || !_state.MouseEnabled) return CallNextHookEx(_hook, code, message, data);
+        var native = Marshal.PtrToStructure<MsLlHookStruct>(data);
+        if ((native.Flags & (LlmhfInjected | LlmhfLowerIlInjected)) != 0)
+            return CallNextHookEx(_hook, code, message, data);
 
         var messageId = unchecked((int)message);
-        var down = messageId is WmKeyDown or WmSysKeyDown;
-        var up = messageId is WmKeyUp or WmSysKeyUp;
+        var down = messageId is WmLeftDown or WmRightDown or WmMiddleDown or WmXButtonDown;
+        var up = messageId is WmLeftUp or WmRightUp or WmMiddleUp or WmXButtonUp;
         if (!down && !up) return CallNextHookEx(_hook, code, message, data);
 
-        var extended = (native.Flags & LlkhfExtended) != 0;
-        var key = new PhysicalKey((int)native.ScanCode, (int)native.VirtualKey, extended, KeyLabel(native, extended));
-        var emergency = down && native.VirtualKey == VkF12 && IsDown(VkControl) && IsDown(VkMenu);
-        string? capturedTarget = null;
-        if (down && !emergency) capturedTarget = _state.TryCapture();
-        _writer.TryWrite(new HookInput(key, down, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), emergency, capturedTarget));
+        var key = MouseButton(messageId, native.MouseData);
+        if (key is null) return CallNextHookEx(_hook, code, message, data);
+        var capturedTarget = down ? _state.TryCapture() : null;
+        _writer.TryWrite(new HookInput(key, down, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), false, capturedTarget));
 
-        var mapped = _state.IsMapped(key);
-        var suppress = emergency || capturedTarget is not null ||
-            (_state.Enabled && !_state.Passthrough && mapped);
+        var suppress = capturedTarget is not null ||
+            (_state.Enabled && !_state.Passthrough && _state.IsMapped(key));
         return suppress ? 1 : CallNextHookEx(_hook, code, message, data);
+    }
+
+    private static PhysicalKey? MouseButton(int message, uint mouseData)
+    {
+        if (message is WmLeftDown or WmLeftUp)
+            return new PhysicalKey(0x1001, 0x01, true, "Mouse Left");
+        if (message is WmRightDown or WmRightUp)
+            return new PhysicalKey(0x1002, 0x02, true, "Mouse Right");
+        if (message is WmMiddleDown or WmMiddleUp)
+            return new PhysicalKey(0x1003, 0x04, true, "Mouse Middle");
+        if (message != WmXButtonDown && message != WmXButtonUp) return null;
+        return ((mouseData >> 16) & 0xffff) switch
+        {
+            1 => new PhysicalKey(0x1004, 0x05, true, "Mouse Back"),
+            2 => new PhysicalKey(0x1005, 0x06, true, "Mouse Forward"),
+            _ => null
+        };
     }
 
     private void MessageLoop()
     {
         _threadId = GetCurrentThreadId();
-        _hook = SetWindowsHookEx(WhKeyboardLl, _callback, GetModuleHandle(null), 0);
+        _hook = SetWindowsHookEx(WhMouseLl, _callback, GetModuleHandle(null), 0);
         _ready.Set();
         if (_hook == 0) return;
         while (GetMessage(out var message, 0, 0, 0) > 0)
@@ -85,20 +100,18 @@ internal sealed class LowLevelKeyboardHook : IDisposable
         _hook = 0;
     }
 
-    private static string KeyLabel(KbdLlHookStruct key, bool extended)
+    [StructLayout(LayoutKind.Sequential)]
+    private readonly struct Point
     {
-        var buffer = new StringBuilder(64);
-        var lParam = (int)(key.ScanCode << 16) | (extended ? 1 << 24 : 0);
-        return GetKeyNameText(lParam, buffer, buffer.Capacity) > 0 ? buffer.ToString() : $"Key {key.VirtualKey}";
+        public readonly int X;
+        public readonly int Y;
     }
 
-    private static bool IsDown(int virtualKey) => (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
-
     [StructLayout(LayoutKind.Sequential)]
-    private readonly struct KbdLlHookStruct
+    private readonly struct MsLlHookStruct
     {
-        public readonly uint VirtualKey;
-        public readonly uint ScanCode;
+        public readonly Point Point;
+        public readonly uint MouseData;
         public readonly uint Flags;
         public readonly uint Time;
         public readonly nuint ExtraInfo;
@@ -126,8 +139,6 @@ internal sealed class LowLevelKeyboardHook : IDisposable
     [DllImport("user32.dll")] private static extern bool TranslateMessage(ref Message message);
     [DllImport("user32.dll")] private static extern nint DispatchMessage(ref Message message);
     [DllImport("user32.dll")] private static extern bool PostThreadMessage(uint threadId, uint message, nuint wParam, nint lParam);
-    [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int virtualKey);
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetKeyNameText(int lParam, StringBuilder text, int size);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern nint GetModuleHandle(string? moduleName);
     [DllImport("kernel32.dll")] private static extern uint GetCurrentThreadId();
 }

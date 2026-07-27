@@ -30,6 +30,20 @@ describe('ProfileStore', () => {
     expect(document.profiles[0].bindings).toHaveLength(14);
     expect(document.profiles[0].bindings.find((binding: { target: string }) => binding.target === 'start')?.source.label).toBe('Escape');
     expect(document.passthrough).toBe(false);
+    expect(document.mouseEnabled).toBe(false);
+  });
+
+  it('migrates existing settings documents with mouse support safely off', async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'fighting-game-stick-settings-'));
+    directories.push(directory);
+    const file = path.join(directory, 'profiles.json');
+    const existing = makeDefaultStore() as Partial<ReturnType<typeof makeDefaultStore>>;
+    delete existing.mouseEnabled;
+    await writeFile(file, JSON.stringify(existing));
+
+    const store = new ProfileStore(file);
+    const loaded = await store.load();
+    expect(loaded.mouseEnabled).toBe(false);
   });
 
   it('migrates an untouched legacy fight layout from Enter to Escape', async () => {

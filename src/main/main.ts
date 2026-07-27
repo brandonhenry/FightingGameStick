@@ -118,6 +118,14 @@ function createMainWindow(): void {
     });
     if (suppress) event.preventDefault();
   });
+  mainWindow.webContents.on('before-mouse-event', (event, mouse) => {
+    const host = controller?.inputHost;
+    if (!(host instanceof DemoInputHost)) return;
+    if (mouse.type !== 'mouseDown' && mouse.type !== 'mouseUp') return;
+    if (!mouse.button) return;
+    const suppress = host.handleMouseInput({ type: mouse.type, button: mouse.button });
+    if (suppress) event.preventDefault();
+  });
   mainWindow.on('close', (event) => {
     if (quitting) return;
     if (controller?.getSnapshot().runtime.enabled) {
@@ -186,7 +194,7 @@ function refreshTrayMenu(): void {
       { label: 'Open Fighting Game Stick', click: () => showMainWindow() },
       { type: 'separator' },
       {
-        label: enabled ? 'Pause keyboard mapping' : 'Enable keyboard mapping',
+        label: enabled ? 'Pause input mapping' : 'Enable input mapping',
         click: () => void controller?.setEnabled(!enabled),
       },
       { label: 'Emergency disable', enabled, click: () => void controller?.safetyPause('Tray emergency disable') },

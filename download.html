@@ -6,12 +6,12 @@
     <meta name="color-scheme" content="dark" />
     <meta
       name="description"
-      content="Download Fighting Game Stick for Windows 10/11 and turn keyboard input into a virtual XInput controller."
+      content="Download Fighting Game Stick for Windows 10/11 and turn keyboard or opt-in mouse input into a virtual XInput controller."
     />
     <meta property="og:title" content="Download Fighting Game Stick" />
     <meta
       property="og:description"
-      content="Map your keyboard to a virtual controller with a live gamepad and fight-stick preview."
+      content="Map keyboard and optional mouse buttons to a virtual controller with live gamepad and fight-stick previews."
     />
     <meta property="og:image" content="assets/icons/app.png" />
     <link rel="icon" type="image/png" href="assets/icons/app.png" />
@@ -592,7 +592,7 @@
         <img src="assets/icons/app.png" alt="" />
         <span class="brand-copy">
           <strong>Fighting Game Stick</strong>
-          <span>Keyboard → XInput</span>
+          <span>Keyboard + mouse → XInput</span>
         </span>
       </a>
       <a class="source-link" href="https://github.com/brandonhenry/FightingGameStick">View source</a>
@@ -602,20 +602,20 @@
       <section class="hero" aria-labelledby="download-heading">
         <div class="hero-copy">
           <div class="version-row">
-            <span class="version">Version 0.4.0</span>
+            <span class="version">Version 0.5.0</span>
             <span class="platform">Windows 10/11 · x64</span>
           </div>
-          <p class="eyebrow">Your keyboard. One virtual controller.</p>
+          <p class="eyebrow">Your inputs. One virtual controller.</p>
           <h1 id="download-heading">Ready when the round starts.</h1>
           <p class="lede">
-            Map one keyboard key to a controller button or a simultaneous chord such as A+X+Y, trigger QCF or QCB
-            plus a custom attack chord, and see every input live on gamepad and fight-stick views.
+            Map a keyboard key or opt-in mouse button to controller output, send chords such as A+X+Y,
+            or trigger QCF/QCB with or without an attack—all visible on live gamepad and fight-stick views.
           </p>
 
           <div class="actions">
             <a
               class="button button-primary"
-              href="https://github.com/brandonhenry/FightingGameStick/releases/download/v0.4.0/FightingGameStickSetup-0.4.0.exe"
+              href="https://github.com/brandonhenry/FightingGameStick/releases/download/v0.5.0/FightingGameStickSetup-0.5.0.exe"
               aria-describedby="download-requirements"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -627,7 +627,7 @@
             </a>
             <a
               class="button button-secondary"
-              href="https://github.com/brandonhenry/FightingGameStick/releases/download/v0.4.0/FightingGameStick-Portable-0.4.0-win-x64.zip"
+              href="https://github.com/brandonhenry/FightingGameStick/releases/download/v0.5.0/FightingGameStick-Portable-0.5.0-win-x64.zip"
             >
               Portable ZIP
             </a>
@@ -641,11 +641,11 @@
         <aside class="download-card" aria-label="First-run instructions">
           <img class="app-icon" src="assets/icons/app.png" alt="Fighting Game Stick app icon" />
           <p class="eyebrow">Three quick steps</p>
-          <h2>From keyboard to controller.</h2>
+          <h2>From your inputs to controller.</h2>
           <ol class="steps">
             <li>Install and launch Fighting Game Stick.</li>
             <li>Approve the signed ViGEmBus driver prompt on first run.</li>
-            <li>Choose your bindings, press Enable, and launch your game.</li>
+            <li>Choose bindings, optionally enable Mouse support, then press Enable.</li>
           </ol>
           <div class="notice">
             <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -653,7 +653,7 @@
               <path d="M12 17h.01" />
               <path d="M10.3 3.4 2.4 17a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.4a2 2 0 0 0-3.4 0Z" />
             </svg>
-            <span>The app installer is not yet Authenticode-signed, so Windows SmartScreen may ask you to choose “More info” and “Run anyway.”</span>
+            <span>Mouse support is off by default. The app is not yet Authenticode-signed, so SmartScreen may ask you to choose “More info” and “Run anyway.”</span>
           </div>
         </aside>
       </section>
@@ -674,13 +674,13 @@
             <li><span class="shortcut-step-copy">Right-click <strong>FightingGameStick.exe</strong>. On Windows 11, choose <strong>Show more options</strong>.</span></li>
             <li><span class="shortcut-step-copy">Choose <strong>Send to → Desktop (create shortcut)</strong>. You can also choose <strong>Pin to Start</strong>.</span></li>
           </ol>
-          <p class="shortcut-note"><strong>Use the EXE in the main FightingGameStick folder.</strong> Do not shortcut the copy inside an <code>app-0.4.0</code> folder, because that versioned folder changes when the app updates. If you downloaded the Portable ZIP, the app remains wherever you extracted it.</p>
+          <p class="shortcut-note"><strong>Use the EXE in the main FightingGameStick folder.</strong> Do not shortcut the copy inside an <code>app-0.5.0</code> folder, because that versioned folder changes when the app updates. If you downloaded the Portable ZIP, the app remains wherever you extracted it.</p>
         </div>
       </section>
     </main>
 
     <footer class="shell">
-      Fighting Game Stick · XInput games that permit global keyboard hooks · Emergency disable: Ctrl + Alt + F12
+      Fighting Game Stick · XInput games that permit global input hooks · Emergency disable: Ctrl + Alt + F12
     </footer>
   </body>
 </html>

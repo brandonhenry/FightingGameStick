@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DemoInputHost, type DemoKeyboardInput } from '../src/main/input-host';
+import { DemoInputHost, type DemoKeyboardInput, type DemoMouseInput } from '../src/main/input-host';
 import { makeDefaultProfile } from '../src/shared/defaults';
 import type { HostEvent } from '../src/shared/types';
 
@@ -10,6 +10,12 @@ const input = (overrides: Partial<DemoKeyboardInput> = {}): DemoKeyboardInput =>
   control: false,
   alt: false,
   isAutoRepeat: false,
+  ...overrides,
+});
+
+const mouseInput = (overrides: Partial<DemoMouseInput> = {}): DemoMouseInput => ({
+  type: 'mouseDown',
+  button: 'left',
   ...overrides,
 });
 
@@ -62,6 +68,48 @@ describe('DemoInputHost safety decisions', () => {
     await host.stop();
   });
 
+  it('ignores mouse buttons until the explicit mouse-support toggle is enabled', async () => {
+    const host = new DemoInputHost();
+    const profile = makeDefaultProfile();
+    profile.bindings.push({
+      id: 'mouse-a',
+      source: { scanCode: 0x1001, virtualKey: 0x01, extended: true, label: 'Mouse Left' },
+      target: 'a',
+    });
+    const events: HostEvent[] = [];
+    host.onEvent((event) => events.push(event));
+    await host.start(profile, false, false);
+    host.setEnabled(true);
+
+    expect(host.handleMouseInput(mouseInput())).toBe(false);
+    expect(events.some((event) => event.type === 'key' && event.key.label === 'Mouse Left')).toBe(false);
+
+    host.setMouseEnabled(true);
+    expect(host.handleMouseInput(mouseInput())).toBe(true);
+    const latestReport = () => events
+      .filter((event): event is Extract<HostEvent, { type: 'controller' }> => event.type === 'controller')
+      .at(-1);
+    expect(latestReport()?.state.buttons.a).toBe(true);
+    host.handleMouseInput(mouseInput({ type: 'mouseUp' }));
+    expect(latestReport()?.state.buttons.a).toBe(false);
+    await host.stop();
+  });
+
+  it('captures an enabled mouse button as a physical binding source', async () => {
+    const host = new DemoInputHost();
+    const capture = vi.fn();
+    host.onEvent((event) => event.type === 'capture' && capture(event));
+    await host.start(makeDefaultProfile(), false, true);
+    host.capture('b');
+    expect(host.handleMouseInput(mouseInput({ button: 'right' }))).toBe(true);
+    expect(capture.mock.calls[0]?.[0].key).toMatchObject({
+      scanCode: 0x1002,
+      virtualKey: 0x02,
+      label: 'Mouse Right',
+    });
+    await host.stop();
+  });
+
   it('plays and previews a complete QCF plus simultaneous attack chord', async () => {
     vi.useFakeTimers();
     const host = new DemoInputHost();
@@ -87,6 +135,30 @@ describe('DemoInputHost safety decisions', () => {
     expect(reports.at(-1)?.buttons.a).toBe(false);
     expect(reports.at(-1)?.buttons.b).toBe(false);
     expect(reports.at(-1)?.buttons.y).toBe(false);
+    await host.stop();
+  });
+
+  it('plays a motion-only QCF while preserving a separately held attack', async () => {
+    vi.useFakeTimers();
+    const host = new DemoInputHost();
+    const profile = makeDefaultProfile();
+    profile.bindings.find((binding) => binding.source.label === 'W')!.target = 'qcf';
+    const reports: Array<Extract<HostEvent, { type: 'controller' }>['state']> = [];
+    host.onEvent((event) => event.type === 'controller' && reports.push(event.state));
+    await host.start(profile, false);
+    host.setEnabled(true);
+
+    host.handleInput(input({ code: 'KeyU', key: 'u' }));
+    host.handleInput(input());
+    await vi.advanceTimersByTimeAsync(70);
+    expect(reports.at(-1)?.buttons['dpad-right']).toBe(true);
+    expect(reports.at(-1)?.buttons.x).toBe(true);
+    expect(reports.at(-1)?.buttons.a).toBe(false);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(reports.at(-1)?.buttons['dpad-right']).toBe(false);
+    expect(reports.at(-1)?.buttons.x).toBe(true);
+    host.handleInput(input({ type: 'keyUp', code: 'KeyU', key: 'u' }));
+    expect(reports.at(-1)?.buttons.x).toBe(false);
     await host.stop();
   });
 

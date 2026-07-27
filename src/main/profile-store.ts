@@ -129,6 +129,11 @@ export class ProfileStore {
     await this.save();
   }
 
+  async setMouseEnabled(value: boolean): Promise<void> {
+    this.document.mouseEnabled = value;
+    await this.save();
+  }
+
   private assertProfile(profileId: string): MappingProfile {
     const profile = this.document.profiles.find((candidate) => candidate.id === profileId);
     if (!profile) throw new Error('Profile not found.');

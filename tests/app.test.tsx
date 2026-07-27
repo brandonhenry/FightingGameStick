@@ -24,6 +24,7 @@ beforeEach(() => {
     getSnapshot: vi.fn().mockResolvedValue(snapshot),
     setEnabled: vi.fn().mockResolvedValue(undefined),
     setPassthrough: vi.fn().mockResolvedValue(undefined),
+    setMouseEnabled: vi.fn().mockResolvedValue(undefined),
     selectProfile: vi.fn().mockResolvedValue(undefined),
     createProfile: vi.fn().mockResolvedValue(snapshot.profiles[0]),
     renameProfile: vi.fn().mockResolvedValue(undefined),
@@ -79,6 +80,16 @@ describe('App', () => {
     await waitFor(() => expect(bridge.beginCapture).toHaveBeenCalledWith('qcf-a+b+y'));
   });
 
+  it('binds a direction-only motion with no controller attack', async () => {
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Motion shortcuts' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle A for QCF chord' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Bind QCF' }));
+
+    await waitFor(() => expect(bridge.beginCapture).toHaveBeenCalledWith('qcf'));
+  });
+
   it('builds a simultaneous controller chord in the keyboard bindings panel', async () => {
     render(<App />);
     await screen.findByRole('heading', { name: 'Multi-button output' });
@@ -92,10 +103,15 @@ describe('App', () => {
 
   it('exposes pass-through and diagnostics without hiding safety status', async () => {
     render(<App />);
-    expect(await screen.findByText('Keyboard pass-through')).toBeVisible();
-    const passthrough = screen.getByRole('checkbox', { name: 'Keyboard pass-through' });
+    expect(await screen.findByText('Input pass-through')).toBeVisible();
+    const passthrough = screen.getByRole('checkbox', { name: 'Input pass-through' });
     fireEvent.click(passthrough);
     await waitFor(() => expect(bridge.setPassthrough).toHaveBeenCalledWith(true));
+
+    const mouseSupport = screen.getByRole('checkbox', { name: 'Mouse support' });
+    expect(mouseSupport).not.toBeChecked();
+    fireEvent.click(mouseSupport);
+    await waitFor(() => expect(bridge.setMouseEnabled).toHaveBeenCalledWith(true));
 
     fireEvent.click(screen.getByRole('button', { name: 'Diagnostics' }));
     expect(screen.getByRole('dialog', { name: 'Diagnostics' })).toBeVisible();

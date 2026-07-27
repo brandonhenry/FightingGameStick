@@ -23,6 +23,10 @@ export function registerIpcHandlers(controller: AppController, getWindow: () => 
     trusted(event);
     await controller.setPassthrough(z.boolean().parse(value));
   });
+  ipcMain.handle(IPC.setMouseEnabled, async (event, value: unknown) => {
+    trusted(event);
+    await controller.setMouseEnabled(z.boolean().parse(value));
+  });
   ipcMain.handle(IPC.selectProfile, async (event, profileId: unknown) => {
     trusted(event);
     await controller.selectProfile(z.string().min(1).max(128).parse(profileId));

@@ -45,6 +45,7 @@ export function makeDefaultStore(): ProfileStoreDocument {
     activeProfileId: profile.id,
     profiles: [profile],
     passthrough: false,
+    mouseEnabled: false,
   };
 }
 
@@ -60,6 +61,7 @@ export function makeInitialSnapshot(platform: NodeJS.Platform = process.platform
       driverState: platform === 'win32' ? 'unknown' : 'unsupported',
       enabled: false,
       passthrough: store.passthrough,
+      mouseEnabled: store.mouseEnabled,
       playerIndex: null,
       protocolVersion: PROTOCOL_VERSION,
       latencyMs: null,

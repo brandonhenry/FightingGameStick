@@ -10,36 +10,37 @@
 
 The standalone [download page](download.html) provides direct installer and portable-build buttons.
 
-Fighting Game Stick turns a physical keyboard into one persistent virtual Xbox 360 controller on Windows 10/11 x64. The app shows the same live report as an Xbox-style pad and an eight-button arcade stick, so a player can create a profile, click a controller control, press a keyboard key, and play an XInput-compatible game without per-game DLL injection.
+Fighting Game Stick turns physical keyboard inputs—and mouse buttons when explicitly enabled—into one persistent virtual Xbox 360 controller on Windows 10/11 x64. The app shows the same live report as an Xbox-style pad and an eight-button arcade stick, so a player can create a profile, click a controller control, press a source input, and play an XInput-compatible game without per-game DLL injection.
 
 The honest compatibility promise is **XInput games that do not deliberately block low-level keyboard hooks**. Anti-cheat systems, elevated games, keyboard hardware rollover limits, Steam Input, and games that ignore XInput can affect behavior. macOS builds run a focused-window UI/demo backend and do not create a system controller.
 
 ## What works
 
 - One persistent ViGEm-backed Xbox 360 controller while the app is running.
-- Global scan-code-based keyboard capture in a separate self-contained .NET 8 x64 process.
-- Mapped-key blocking by default, with an optional keyboard pass-through switch.
+- Global scan-code-based keyboard and mouse-button capture in a separate self-contained .NET 8 x64 process.
+- Mouse support is persisted but safely off by default; enabling it supports left, right, middle, back, and forward buttons.
+- Mapped-input blocking by default, with an optional pass-through switch.
 - An unbindable `Ctrl + Alt + F12` emergency disable and matching tray action.
 - Neutral SOCD cleaning, circular digital-stick diagonals, digital 0/100% triggers, repeat filtering, and shared-target reference behavior.
-- One-key simultaneous controller chords such as A+B, A+X, or A+X+Y, held for exactly as long as the mapped keyboard key.
-- One-key QCF (`↓ ↘ →`) and QCB (`↓ ↙ ←`) shortcuts with configurable simultaneous attack chords such as A+B, A+B+Y, or B+X, with a live step-by-step preview.
+- One-input simultaneous controller chords such as A+B, A+X, or A+X+Y, held for exactly as long as the mapped source.
+- One-input QCF (`↓ ↘ →`) and QCB (`↓ ↙ ←`) shortcuts, either direction-only or with configurable simultaneous attack chords such as A+B, A+B+Y, or B+X.
 - Manual profile create, rename, duplicate, switch, delete, and atomic versioned persistence.
 - Live keyboard rollover testing, gamepad/fight-stick views, driver/helper/player-slot status, logs, and repair actions.
 - Safe neutral reset on pause, profile changes, suspend/lock, helper loss, explicit quit, and parent-pipe closure.
 
 ## Motion shortcuts
 
-Open **Motion shortcuts**, choose QCF or QCB, toggle every attack button that should land together, and select **Bind chord to a key**. A shortcut sends down, diagonal, and forward/back + the complete simultaneous attack chord as a short timed sequence through the same virtual controller. Normal held inputs remain active, auto-repeat does not restart the shortcut, and pausing or changing profiles immediately cancels the sequence and releases its outputs.
+Open **Motion shortcuts**, choose QCF or QCB, then leave every attack button off for a direction-only motion or select the buttons that should land together. Choose **Bind motion/command to an input** and press a keyboard key—or a mouse button after turning on Mouse support. A shortcut sends down, diagonal, and forward/back, optionally adding the full attack chord to the final step. Normal held inputs remain active, so a direction-only QCF can be used alongside a separately mapped X button. Auto-repeat does not restart a shortcut, and pausing or changing profiles immediately cancels the sequence and releases its outputs.
 
 Motion shortcuts may be considered macros by a game, league, or tournament. Check the rules for where you play before using them competitively.
 
 ## Multi-button bindings
 
-In the left **Bindings** panel, choose two or more controller buttons under **Multi-button output**, then select **Bind** and press a keyboard key. The chosen controller buttons are pressed together when that keyboard key goes down and remain held until it is released. These bindings are saved with the active profile and light both controller previews like ordinary inputs.
+In the left **Bindings** panel, choose two or more controller buttons under **Multi-button output**, then select **Bind** and press a keyboard key or enabled mouse button. The chosen controller buttons are pressed together while that source is held. These bindings are saved with the active profile and light both controller previews like ordinary inputs.
 
 ## Architecture
 
-The renderer is a sandboxed React UI with no Node.js access. A context-isolated preload exposes only validated application actions. Electron owns profiles, tray behavior, lifecycle safety, and a newline-delimited JSON protocol to the Windows host. The native host owns the `WH_KEYBOARD_LL` hook and ViGEm client; its hook callback ignores injected input, decides suppression quickly, and queues report work off the hook thread.
+The renderer is a sandboxed React UI with no Node.js access. A context-isolated preload exposes only validated application actions. Electron owns profiles, tray behavior, lifecycle safety, and a newline-delimited JSON protocol to the Windows host. The native host owns dedicated `WH_KEYBOARD_LL` and `WH_MOUSE_LL` hooks plus the ViGEm client; callbacks ignore injected input, decide suppression quickly, and queue report work off the hook threads.
 
 Profile data is stored as `profiles.json` under Electron's platform user-data directory. Writes use a same-directory temporary file followed by an atomic rename. Malformed data is moved aside and replaced by the default fight layout.
 
@@ -76,7 +77,8 @@ GitHub-hosted Windows runners use Windows Server, which ViGEmBus explicitly does
 
 ## Troubleshooting
 
-- **Game sees keyboard and controller actions:** leave Keyboard pass-through off. If Steam still duplicates/remaps output, disable Steam Input for that game.
+- **Game sees physical and controller actions:** leave Input pass-through off. If Steam still duplicates/remaps output, disable Steam Input for that game.
+- **Mouse clicks are being mapped unexpectedly:** pause with `Ctrl+Alt+F12`, then turn Mouse support off. Mouse mapping is off on every fresh install and migrated settings file.
 - **Elevated game receives no input:** Windows integrity levels can block hooks from a non-elevated app. Run both at the same integrity level only if you trust the software involved.
 - **A multi-key combo misses a key:** use the live simultaneous-key meter. This usually indicates keyboard matrix ghosting/rollover.
 - **Wrong player slot:** disconnect other controllers or use Diagnostics → Open controller panel, then restart the game after Fighting Game Stick is ready.

@@ -4,7 +4,7 @@ namespace FightingGameStick.InputHost;
 
 internal static class Protocol
 {
-    public const int Version = 4;
+    public const int Version = 5;
 
     public static readonly string[] DigitalTargets =
     [
@@ -32,7 +32,7 @@ internal sealed record MappingProfile(
     string CreatedAt,
     string UpdatedAt);
 
-internal sealed record InitializeCommand(int ProtocolVersion, MappingProfile Profile, bool Passthrough);
+internal sealed record InitializeCommand(int ProtocolVersion, MappingProfile Profile, bool Passthrough, bool MouseEnabled);
 internal sealed record ConfigureCommand(MappingProfile Profile);
 internal sealed record BooleanCommand(bool Value);
 internal sealed record CaptureCommand(string Target);

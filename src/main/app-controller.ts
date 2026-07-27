@@ -31,11 +31,12 @@ export class AppController {
       runtime: {
         ...makeInitialSnapshot().runtime,
         passthrough: document.passthrough,
+        mouseEnabled: document.mouseEnabled,
       },
     };
     this.hostUnsubscribe = this.host.onEvent((event) => void this.onHostEvent(event));
     this.addLog(process.platform === 'win32' ? 'Starting Windows input host.' : 'Starting safe demo input host.');
-    await this.host.start(this.profiles.activeProfile(), document.passthrough);
+    await this.host.start(this.profiles.activeProfile(), document.passthrough, document.mouseEnabled);
     this.pingTimer = setInterval(() => this.host.ping(Date.now()), 2_000);
     this.publish();
   }
@@ -63,7 +64,7 @@ export class AppController {
       this.snapshot.controller = createNeutralControllerState(this.snapshot.controller.sequence + 1);
       this.snapshot.pressedKeys = [];
     }
-    this.addLog(value ? 'Keyboard mapping enabled.' : 'Keyboard mapping paused.');
+    this.addLog(value ? 'Input mapping enabled.' : 'Input mapping paused.');
     this.publish();
   }
 
@@ -71,7 +72,18 @@ export class AppController {
     await this.profiles.setPassthrough(value);
     this.host.setPassthrough(value);
     this.snapshot.runtime.passthrough = value;
-    this.addLog(value ? 'Mapped keys will pass through.' : 'Mapped keys will be blocked while enabled.');
+    this.addLog(value ? 'Mapped inputs will pass through.' : 'Mapped inputs will be blocked while enabled.');
+    this.refreshProfiles();
+  }
+
+  async setMouseEnabled(value: boolean): Promise<void> {
+    if (!value && this.snapshot.runtime.enabled) await this.safetyPause('Mouse support disabled');
+    await this.profiles.setMouseEnabled(value);
+    this.host.setMouseEnabled(value);
+    this.snapshot.runtime.mouseEnabled = value;
+    this.addLog(value
+      ? 'Mouse-button mapping enabled. Mapped clicks can now be captured and blocked.'
+      : 'Mouse-button mapping disabled. Mouse clicks always pass through.');
     this.refreshProfiles();
   }
 
@@ -151,7 +163,11 @@ export class AppController {
     this.snapshot.runtime.driverState = process.platform === 'win32' ? 'unknown' : 'unsupported';
     this.snapshot.runtime.lastError = undefined;
     this.publish();
-    await this.host.start(this.profiles.activeProfile(), this.snapshot.runtime.passthrough);
+    await this.host.start(
+      this.profiles.activeProfile(),
+      this.snapshot.runtime.passthrough,
+      this.snapshot.runtime.mouseEnabled,
+    );
   }
 
   async safetyPause(reason: string): Promise<void> {
@@ -255,6 +271,7 @@ export class AppController {
     this.snapshot.profiles = document.profiles;
     this.snapshot.activeProfileId = document.activeProfileId;
     this.snapshot.runtime.passthrough = document.passthrough;
+    this.snapshot.runtime.mouseEnabled = document.mouseEnabled;
     if (publish) this.publish();
   }
 
@@ -332,13 +349,13 @@ function buildDiagnostics(snapshot: AppSnapshot): DiagnosticResult[] {
     },
     {
       id: 'keyboard-hook',
-      label: 'Keyboard safety',
+      label: 'Input safety',
       status: snapshot.runtime.enabled ? 'pass' : 'info',
       detail: snapshot.runtime.enabled
         ? snapshot.runtime.passthrough
-          ? 'Mappings are live; keyboard events also pass through.'
-          : 'Mappings are live; mapped keys are blocked. Ctrl+Alt+F12 always disables.'
-        : 'Mapping is paused; the keyboard is never blocked.',
+          ? 'Mappings are live; mapped keyboard and enabled mouse inputs also pass through.'
+          : 'Mappings are live; mapped inputs are blocked. Ctrl+Alt+F12 always disables.'
+        : 'Mapping is paused; keyboard and mouse inputs are never blocked.',
     },
     {
       id: 'steam',

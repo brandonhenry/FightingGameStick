@@ -382,6 +382,19 @@ svg {
   stroke-width: 1.6;
 }
 
+.input-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #6c7a86;
+}
+
+.input-icons svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.6;
+}
+
 .eyebrow {
   display: block;
   margin-bottom: 5px;
@@ -871,10 +884,17 @@ kbd {
   line-height: 1.5;
 }
 
-.passthrough-control {
+.input-toggles {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-toggle {
   display: flex;
   min-width: 220px;
-  min-height: 58px;
+  min-height: 54px;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -885,23 +905,23 @@ kbd {
   cursor: pointer;
 }
 
-.passthrough-control > span:first-child {
+.input-toggle > span:first-child {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: 2px;
 }
 
-.passthrough-control strong {
+.input-toggle strong {
   font-size: 11px;
 }
 
-.passthrough-control small {
+.input-toggle small {
   color: var(--muted);
   font-size: 9px;
 }
 
-.passthrough-control input {
+.input-toggle input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -934,16 +954,16 @@ kbd {
   transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
-.passthrough-control input:checked + .switch-track {
+.input-toggle input:checked + .switch-track {
   background: rgba(85, 230, 193, 0.26);
 }
 
-.passthrough-control input:checked + .switch-track span {
+.input-toggle input:checked + .switch-track span {
   background: var(--mint);
   transform: translateX(18px);
 }
 
-.passthrough-control input:focus-visible + .switch-track {
+.input-toggle input:focus-visible + .switch-track {
   outline: 2px solid var(--mint);
   outline-offset: 3px;
 }

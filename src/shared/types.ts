@@ -1,4 +1,4 @@
-export const PROTOCOL_VERSION = 4 as const;
+export const PROTOCOL_VERSION = 5 as const;
 
 export const controllerTargets = [
   'dpad-up',
@@ -30,7 +30,7 @@ export const controllerTargets = [
 export type ControllerTarget = (typeof controllerTargets)[number];
 
 export type ControllerChordTarget = `chord-${string}`;
-export type MotionShortcutTarget = `qcf-${string}` | `qcb-${string}`;
+export type MotionShortcutTarget = 'qcf' | 'qcb' | `qcf-${string}` | `qcb-${string}`;
 export type BindingTarget = ControllerTarget | ControllerChordTarget | MotionShortcutTarget;
 
 export const digitalButtonTargets = [
@@ -98,6 +98,7 @@ export interface RuntimeStatus {
   driverState: DriverState;
   enabled: boolean;
   passthrough: boolean;
+  mouseEnabled: boolean;
   playerIndex: number | null;
   protocolVersion: number;
   driverVersion?: string;
@@ -135,13 +136,21 @@ export interface ProfileStoreDocument {
   activeProfileId: string;
   profiles: MappingProfile[];
   passthrough: boolean;
+  mouseEnabled: boolean;
 }
 
 export type HostCommand =
-  | { type: 'initialize'; protocolVersion: number; profile: MappingProfile; passthrough: boolean }
+  | {
+      type: 'initialize';
+      protocolVersion: number;
+      profile: MappingProfile;
+      passthrough: boolean;
+      mouseEnabled: boolean;
+    }
   | { type: 'configure'; profile: MappingProfile }
   | { type: 'enable'; value: boolean }
   | { type: 'passthrough'; value: boolean }
+  | { type: 'mouse'; value: boolean }
   | { type: 'capture'; target: BindingTarget }
   | { type: 'cancel-capture' }
   | { type: 'reset' }
@@ -167,6 +176,7 @@ export interface AppBridge {
   getSnapshot(): Promise<AppSnapshot>;
   setEnabled(value: boolean): Promise<void>;
   setPassthrough(value: boolean): Promise<void>;
+  setMouseEnabled(value: boolean): Promise<void>;
   selectProfile(profileId: string): Promise<void>;
   createProfile(name?: string): Promise<MappingProfile>;
   renameProfile(profileId: string, name: string): Promise<void>;

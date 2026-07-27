@@ -2,6 +2,7 @@ export const IPC = {
   getSnapshot: 'app:get-snapshot',
   setEnabled: 'app:set-enabled',
   setPassthrough: 'app:set-passthrough',
+  setMouseEnabled: 'app:set-mouse-enabled',
   selectProfile: 'profiles:select',
   createProfile: 'profiles:create',
   renameProfile: 'profiles:rename',

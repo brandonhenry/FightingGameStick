@@ -6,6 +6,7 @@ const bridge: AppBridge = {
   getSnapshot: () => ipcRenderer.invoke(IPC.getSnapshot),
   setEnabled: (value) => ipcRenderer.invoke(IPC.setEnabled, value),
   setPassthrough: (value) => ipcRenderer.invoke(IPC.setPassthrough, value),
+  setMouseEnabled: (value) => ipcRenderer.invoke(IPC.setMouseEnabled, value),
   selectProfile: (profileId) => ipcRenderer.invoke(IPC.selectProfile, profileId),
   createProfile: (name) => ipcRenderer.invoke(IPC.createProfile, name),
   renameProfile: (profileId, name) => ipcRenderer.invoke(IPC.renameProfile, profileId, name),

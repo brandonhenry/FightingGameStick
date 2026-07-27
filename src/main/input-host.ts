@@ -32,11 +32,12 @@ export abstract class InputHost {
     this.emitter.emit('event', event);
   }
 
-  abstract start(profile: MappingProfile, passthrough: boolean): Promise<void>;
+  abstract start(profile: MappingProfile, passthrough: boolean, mouseEnabled: boolean): Promise<void>;
   abstract stop(): Promise<void>;
   abstract setProfile(profile: MappingProfile): void;
   abstract setEnabled(value: boolean): void;
   abstract setPassthrough(value: boolean): void;
+  abstract setMouseEnabled(value: boolean): void;
   abstract capture(target: BindingTarget): void;
   abstract cancelCapture(): void;
   abstract reset(): void;
@@ -48,7 +49,7 @@ export class WindowsInputHost extends InputHost {
   private stopping = false;
   private buffer = '';
 
-  async start(profile: MappingProfile, passthrough: boolean): Promise<void> {
+  async start(profile: MappingProfile, passthrough: boolean, mouseEnabled = false): Promise<void> {
     if (this.child) return;
     const executable = this.resolveExecutable();
     if (!existsSync(executable)) {
@@ -85,7 +86,7 @@ export class WindowsInputHost extends InputHost {
         });
       }
     });
-    this.send({ type: 'initialize', protocolVersion: PROTOCOL_VERSION, profile, passthrough });
+    this.send({ type: 'initialize', protocolVersion: PROTOCOL_VERSION, profile, passthrough, mouseEnabled });
   }
 
   async stop(): Promise<void> {
@@ -116,6 +117,10 @@ export class WindowsInputHost extends InputHost {
 
   setPassthrough(value: boolean): void {
     this.send({ type: 'passthrough', value });
+  }
+
+  setMouseEnabled(value: boolean): void {
+    this.send({ type: 'mouse', value });
   }
 
   capture(target: BindingTarget): void {
@@ -176,16 +181,23 @@ export interface DemoKeyboardInput {
   isAutoRepeat: boolean;
 }
 
+export interface DemoMouseInput {
+  type: 'mouseDown' | 'mouseUp';
+  button: string;
+}
+
 export class DemoInputHost extends InputHost {
   private engine: MappingEngine | null = null;
   private enabled = false;
   private passthrough = false;
+  private mouseEnabled = false;
   private captureTarget: BindingTarget | null = null;
   private readonly motionRuns = new Map<string, AbortController>();
 
-  async start(profile: MappingProfile, passthrough: boolean): Promise<void> {
+  async start(profile: MappingProfile, passthrough: boolean, mouseEnabled = false): Promise<void> {
     this.engine = new MappingEngine(profile);
     this.passthrough = passthrough;
+    this.mouseEnabled = mouseEnabled;
     queueMicrotask(() => {
       this.emit({ type: 'ready', protocolVersion: PROTOCOL_VERSION, playerIndex: 0, driverVersion: 'Demo' });
       this.emit({ type: 'controller', state: this.engine!.getState() });
@@ -219,6 +231,10 @@ export class DemoInputHost extends InputHost {
     this.passthrough = value;
   }
 
+  setMouseEnabled(value: boolean): void {
+    this.mouseEnabled = value;
+  }
+
   capture(target: BindingTarget): void {
     this.captureTarget = target;
   }
@@ -250,6 +266,29 @@ export class DemoInputHost extends InputHost {
     }
 
     if (down && this.captureTarget && !input.isAutoRepeat) {
+      const target = this.captureTarget;
+      this.captureTarget = null;
+      this.emit({ type: 'capture', key, target });
+      return true;
+    }
+
+    this.emit({ type: 'key', key, down, timestamp: Date.now() });
+    if (this.enabled) {
+      const shortcut = down ? this.engine.motionShortcutFor(key) : null;
+      const state = this.engine.transition(key, down);
+      if (state && shortcut) void this.playMotion(physicalKeyId(key), shortcut);
+      else if (state) this.emit({ type: 'controller', state });
+    }
+    return this.enabled && !this.passthrough && this.engine.isMapped(key);
+  }
+
+  handleMouseInput(input: DemoMouseInput): boolean {
+    if (!this.engine || !this.mouseEnabled) return false;
+    const key = demoMouseButton(input.button);
+    if (!key) return false;
+    const down = input.type === 'mouseDown';
+
+    if (down && this.captureTarget) {
       const target = this.captureTarget;
       this.captureTarget = null;
       this.emit({ type: 'capture', key, target });
@@ -393,6 +432,19 @@ function demoPhysicalKey(code: string, label: string): PhysicalKey {
     extended,
     label: normalizedLabel || code,
   };
+}
+
+const demoMouseButtons: Record<string, PhysicalKey> = {
+  left: { scanCode: 0x1001, virtualKey: 0x01, extended: true, label: 'Mouse Left' },
+  right: { scanCode: 0x1002, virtualKey: 0x02, extended: true, label: 'Mouse Right' },
+  middle: { scanCode: 0x1003, virtualKey: 0x04, extended: true, label: 'Mouse Middle' },
+  back: { scanCode: 0x1004, virtualKey: 0x05, extended: true, label: 'Mouse Back' },
+  forward: { scanCode: 0x1005, virtualKey: 0x06, extended: true, label: 'Mouse Forward' },
+};
+
+function demoMouseButton(button: string): PhysicalKey | null {
+  const key = demoMouseButtons[button.toLocaleLowerCase()];
+  return key ? { ...key } : null;
 }
 
 export function createInputHost(): InputHost {
